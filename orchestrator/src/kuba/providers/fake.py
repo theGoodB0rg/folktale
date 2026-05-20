@@ -1,3 +1,11 @@
+import hashlib
+from pathlib import Path
+
+from PIL import Image
+
+from kuba.paths import resolve_episode_path
+
+
 class FakeScriptProvider:
     def generate_script(self, source_markdown: str, episode_id: str) -> dict[str, object]:
         title = next(
@@ -28,11 +36,11 @@ class FakeScriptProvider:
             },
             "characters": [
                 {
-                    "id": "child",
+                    "id": "protagonist",
                     "role": "protagonist",
                     "display_name": "Nia",
                     "consistency_scope": "episode",
-                    "reference_image_path": "images/characters/child_ref.png",
+                    "reference_image_path": "images/characters/protagonist_ref.png",
                     "identity_lock": {"priority": "strict", "face": "required"},
                     "identity_prompt": {
                         "age": "young villager",
@@ -108,20 +116,20 @@ class FakeScriptProvider:
                         "The river returns at sunset.",
                     ],
                     [
-                        ["child"],
-                        ["child"],
-                        ["child"],
-                        ["child", "river_spirit"],
-                        ["child", "river_spirit"],
-                        ["child"],
+                        ["protagonist"],
+                        ["protagonist"],
+                        ["protagonist"],
+                        ["protagonist", "river_spirit"],
+                        ["protagonist", "river_spirit"],
+                        ["protagonist"],
                     ],
                     [
-                        {"child": "strict"},
-                        {"child": "strict"},
-                        {"child": "strict"},
-                        {"child": "strict", "river_spirit": "strict"},
-                        {"child": "strict", "river_spirit": "strict"},
-                        {"child": "strict"},
+                        {"protagonist": "strict"},
+                        {"protagonist": "strict"},
+                        {"protagonist": "strict"},
+                        {"protagonist": "strict", "river_spirit": "strict"},
+                        {"protagonist": "strict", "river_spirit": "strict"},
+                        {"protagonist": "strict"},
                     ],
                     [
                         {"environment": "wide dry river at dawn, Kuba village beyond reeds"},
@@ -164,3 +172,25 @@ class FakeScriptProvider:
                 },
             },
         }
+
+
+class FakeImageProvider:
+    provider_name = "fake"
+
+    def generate_image(self, episode_root: str, relative_path: str, seed_text: str) -> str:
+        output_path = resolve_episode_path(Path(episode_root), relative_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        digest = hashlib.sha256(f"{relative_path}:{seed_text}".encode("utf-8")).digest()
+        base_color = (digest[0], digest[1], digest[2])
+        accent_color = (digest[3], digest[4], digest[5])
+
+        image = Image.new("RGB", (64, 64), base_color)
+        pixels = image.load()
+        for y in range(64):
+            for x in range(64):
+                if (x + y + digest[(x + y) % len(digest)]) % 11 == 0:
+                    pixels[x, y] = accent_color
+
+        image.save(output_path, format="PNG")
+        return str(output_path)
