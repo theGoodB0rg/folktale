@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from pathlib import Path
 
 from kuba.state.episode_state import EpisodeState
@@ -30,7 +31,12 @@ def create_episode(output_root: Path, title: str) -> Path:
 
 
 def _slugify(value: str) -> str:
-    normalized = re.sub(r"['’]", "", value.lower())
+    transliterated = (
+        unicodedata.normalize("NFKD", value)
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
+    normalized = re.sub(r"['’]", "", transliterated.lower())
     slug = re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
     if not slug:
         raise ValueError("episode title must contain at least one alphanumeric character")

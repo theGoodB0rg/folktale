@@ -1,5 +1,5 @@
 class FakeScriptProvider:
-    def generate_script(self, source_markdown: str) -> dict[str, object]:
+    def generate_script(self, source_markdown: str, episode_id: str) -> dict[str, object]:
         title = next(
             (line.strip("# ").strip() for line in source_markdown.splitlines() if line.strip()),
             "Untitled Episode",
@@ -10,7 +10,7 @@ class FakeScriptProvider:
         return {
             "schema_version": "0.1",
             "episode": {
-                "id": "fake-vertical-slice",
+                "id": episode_id,
                 "title": title,
                 "duration_sec": 78,
                 "format": "vertical_slice",

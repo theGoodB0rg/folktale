@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from kuba.blueprint.loader import load_blueprint
 from kuba.phases.episode_create import create_episode
@@ -32,3 +33,51 @@ def test_create_episode_raises_if_episode_directory_already_exists(tmp_path: Pat
 
     with pytest.raises(FileExistsError):
         create_episode(tmp_path / "episodes", "The River's Debt")
+
+
+def test_create_episode_transliterates_unicode_title(tmp_path: Path):
+    episode_root = create_episode(tmp_path / "episodes", "Ékó River")
+
+    assert episode_root.name == "eko-river"
+
+
+def test_create_episode_raises_when_title_has_no_slug_characters(tmp_path: Path):
+    with pytest.raises(ValueError, match="alphanumeric"):
+        create_episode(tmp_path / "episodes", "漢字")
+
+
+def test_generate_script_uses_episode_directory_slug_as_blueprint_id(tmp_path: Path):
+    first_episode = create_episode(tmp_path / "episodes", "The River's Debt")
+    second_episode = create_episode(tmp_path / "episodes", "Ékó River")
+
+    generate_script(first_episode, FakeScriptProvider())
+    generate_script(second_episode, FakeScriptProvider())
+
+    assert load_blueprint(first_episode / "blueprint.json").episode.id == "the-rivers-debt"
+    assert load_blueprint(second_episode / "blueprint.json").episode.id == "eko-river"
+
+
+def test_generate_script_validates_before_replacing_files_or_completing_phase(tmp_path: Path):
+    episode_root = create_episode(tmp_path / "episodes", "The River's Debt")
+    generate_script(episode_root, FakeScriptProvider())
+    original_blueprint = (episode_root / "blueprint.json").read_text(encoding="utf-8")
+    original_generated_script = (episode_root / "script" / "generated_script.json").read_text(
+        encoding="utf-8"
+    )
+    EpisodeState.new().save(episode_root / "state.json")
+
+    with pytest.raises(ValidationError, match="duration"):
+        generate_script(episode_root, InvalidDurationScriptProvider())
+
+    assert (episode_root / "blueprint.json").read_text(encoding="utf-8") == original_blueprint
+    assert (
+        episode_root / "script" / "generated_script.json"
+    ).read_text(encoding="utf-8") == original_generated_script
+    assert "script_generate" not in EpisodeState.load(episode_root / "state.json").phases
+
+
+class InvalidDurationScriptProvider:
+    def generate_script(self, source_markdown: str, episode_id: str) -> dict[str, object]:
+        payload = FakeScriptProvider().generate_script(source_markdown, episode_id)
+        payload["episode"]["duration_sec"] = 12
+        return payload
