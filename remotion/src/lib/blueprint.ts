@@ -108,14 +108,85 @@ export const getBlueprintFps = (
 };
 
 export const resolveEpisodeAsset = (
-  path: string,
+  assetPath: string,
   episodeRoot: string | undefined,
 ): string => {
-  if (!episodeRoot) {
-    return path;
+  if (isPreservedMediaSrc(assetPath)) {
+    return assetPath;
   }
 
-  const normalizedRoot = episodeRoot.replace(/\\/g, '/').replace(/\/$/, '');
-  const normalizedPath = path.replace(/\\/g, '/').replace(/^\//, '');
-  return `${normalizedRoot}/${normalizedPath}`;
+  if (isAbsoluteFilesystemPath(assetPath)) {
+    return filesystemPathToFileUrl(assetPath);
+  }
+
+  if (!episodeRoot) {
+    return assetPath;
+  }
+
+  if (isAbsoluteFilesystemPath(episodeRoot) && isSafeRelativePath(assetPath)) {
+    return filesystemPathToFileUrl(joinFilesystemPath(episodeRoot, assetPath));
+  }
+
+  return assetPath;
 };
+
+const isPreservedMediaSrc = (assetPath: string): boolean =>
+  /^(https?:|data:|file:)/i.test(assetPath);
+
+const isAbsoluteFilesystemPath = (assetPath: string): boolean =>
+  /^[a-zA-Z]:[\\/]/.test(assetPath) ||
+  assetPath.startsWith('/') ||
+  assetPath.startsWith('\\\\');
+
+const isSafeRelativePath = (assetPath: string): boolean => {
+  const normalized = assetPath.replace(/\\/g, '/');
+
+  if (normalized.startsWith('/') || normalized === '..') {
+    return false;
+  }
+
+  return !normalized.split('/').includes('..');
+};
+
+const joinFilesystemPath = (root: string, relativePath: string): string => {
+  const normalizedRoot = root.replace(/\\/g, '/').replace(/\/$/, '');
+  const normalizedRelative = relativePath
+    .replace(/\\/g, '/')
+    .replace(/^\.\//, '');
+
+  return `${normalizedRoot}/${normalizedRelative}`;
+};
+
+const filesystemPathToFileUrl = (assetPath: string): string => {
+  const normalized = assetPath.replace(/\\/g, '/');
+
+  if (normalized.startsWith('//')) {
+    const withoutSlashes = normalized.replace(/^\/+/, '');
+    return `file://${encodePathParts(withoutSlashes)}`;
+  }
+
+  const driveMatch = normalized.match(/^([a-zA-Z]):\/(.*)$/);
+  if (driveMatch) {
+    const [, drive, rest] = driveMatch;
+    return `file:///${drive}:/${encodePathParts(rest)}`;
+  }
+
+  if (normalized.startsWith('/')) {
+    return `file://${encodePathParts(normalized)}`;
+  }
+
+  return normalized;
+};
+
+const encodePathParts = (path: string): string =>
+  path
+    .split('/')
+    .map((part) => encodeURIComponent(part))
+    .join('/');
+
+export const assetSourceTypecheckExamples: readonly string[] = [
+  resolveEpisodeAsset('https://example.com/scene.png', undefined),
+  resolveEpisodeAsset('C:/episodes/river debt/scene 1.png', undefined),
+  resolveEpisodeAsset('images/scenes/scene_0001.png', 'C:/episodes/the-rivers-debt'),
+  resolveEpisodeAsset('images/scenes/scene_0001.png', undefined),
+];

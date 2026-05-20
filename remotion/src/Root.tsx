@@ -1,4 +1,4 @@
-import {Composition} from 'remotion';
+import {Composition, registerRoot} from 'remotion';
 import {FolktaleEpisode} from './compositions/FolktaleEpisode';
 import {
   type FolktaleEpisodeProps,
@@ -43,3 +43,5 @@ export const RemotionRoot = () => {
     />
   );
 };
+
+registerRoot(RemotionRoot);

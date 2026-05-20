@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "render:placeholder": "remotion render src/Root.tsx FolktaleEpisode ../episodes/the-rivers-debt/render/placeholder.mp4",
     "render:preview": "remotion render src/Root.tsx FolktaleEpisode ../episodes/the-rivers-debt/render/preview.mp4"
   },
   "dependencies": {
