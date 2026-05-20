@@ -123,11 +123,17 @@ export const resolveEpisodeAsset = (
     return assetPath;
   }
 
-  if (isAbsoluteFilesystemPath(episodeRoot) && isSafeRelativePath(assetPath)) {
-    return filesystemPathToFileUrl(joinFilesystemPath(episodeRoot, assetPath));
+  if (!isSafeRelativePath(assetPath)) {
+    return assetPath;
   }
 
-  return assetPath;
+  const joinedPath = joinFilesystemPath(episodeRoot, assetPath);
+
+  if (isAbsoluteFilesystemPath(episodeRoot)) {
+    return filesystemPathToFileUrl(joinedPath);
+  }
+
+  return joinedPath;
 };
 
 const isPreservedMediaSrc = (assetPath: string): boolean =>
@@ -188,5 +194,6 @@ export const assetSourceTypecheckExamples: readonly string[] = [
   resolveEpisodeAsset('https://example.com/scene.png', undefined),
   resolveEpisodeAsset('C:/episodes/river debt/scene 1.png', undefined),
   resolveEpisodeAsset('images/scenes/scene_0001.png', 'C:/episodes/the-rivers-debt'),
+  resolveEpisodeAsset('images/scenes/scene_0001.png', '../episodes/the-rivers-debt'),
   resolveEpisodeAsset('images/scenes/scene_0001.png', undefined),
 ];
