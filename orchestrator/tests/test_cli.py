@@ -1,6 +1,11 @@
 from pathlib import Path
 
+from kuba.cli import app
 from kuba.config import load_config
+
+
+def test_cli_app_is_importable():
+    assert app is not None
 
 
 def test_load_config_reads_default_yaml(repo_root: Path):
