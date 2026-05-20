@@ -4,6 +4,9 @@ from pathlib import Path
 import subprocess
 
 
+FFPROBE_TIMEOUT_SEC = 5
+
+
 @dataclass(frozen=True)
 class AudioProbeResult:
     exists: bool
@@ -31,12 +34,14 @@ def probe_audio(path: Path) -> AudioProbeResult:
             check=True,
             capture_output=True,
             text=True,
+            timeout=FFPROBE_TIMEOUT_SEC,
         )
         payload = json.loads(completed.stdout)
         duration = float(payload["format"]["duration"])
     except (
         FileNotFoundError,
         subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
         json.JSONDecodeError,
         KeyError,
         TypeError,

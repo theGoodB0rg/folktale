@@ -4,6 +4,9 @@ from pathlib import Path
 import subprocess
 
 
+FFPROBE_TIMEOUT_SEC = 5
+
+
 @dataclass(frozen=True)
 class VideoProbeResult:
     exists: bool
@@ -34,6 +37,7 @@ def probe_video(path: Path) -> VideoProbeResult:
             check=True,
             capture_output=True,
             text=True,
+            timeout=FFPROBE_TIMEOUT_SEC,
         )
         payload = json.loads(completed.stdout)
         duration = float(payload["format"]["duration"])
@@ -47,6 +51,7 @@ def probe_video(path: Path) -> VideoProbeResult:
     except (
         FileNotFoundError,
         subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
         json.JSONDecodeError,
         KeyError,
         StopIteration,
