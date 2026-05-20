@@ -1,4 +1,6 @@
 .worktrees/
+.env
+episodes/
 __pycache__/
 *.py[cod]
 .pytest_cache/

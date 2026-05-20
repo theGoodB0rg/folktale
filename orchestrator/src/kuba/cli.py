@@ -3,12 +3,15 @@ from typing import Annotated
 
 import typer
 
+from kuba.config import load_project_env
 from kuba.doctor import run_doctor_check
+from kuba.mode import is_fake_provider, normalize_mode
 from kuba.phases.audio_generate import generate_audio
 from kuba.phases.character_refs import approve_refs, generate_refs
 from kuba.phases.episode_create import create_episode
 from kuba.phases.image_generate import generate_images
 from kuba.phases.resume import resume_episode
+from kuba.phases.render import render_episode
 from kuba.phases.script_generate import generate_script
 from kuba.phases.validate_assets import validate_assets
 from kuba.phases.video_generate import generate_video
@@ -18,6 +21,7 @@ from kuba.providers.fake import (
     FakeImageProvider,
     FakeScriptProvider,
 )
+from kuba.providers.fixture import FixtureScriptProvider
 from kuba.providers.comfyui import ComfyUIImageProvider
 from kuba.providers.gemini import GeminiScriptProvider
 from kuba.providers.kokoro import KokoroAudioProvider
@@ -39,6 +43,7 @@ app.add_typer(assets_app, name="assets")
 @app.callback()
 def main() -> None:
     """Kuba folktale video pipeline."""
+    load_project_env()
 
 
 @app.command()
@@ -73,12 +78,16 @@ def script_generate(
     episode: Path,
     fake: Annotated[bool, typer.Option("--fake")] = False,
     provider: Annotated[str, typer.Option("--provider")] = "",
+    mode: Annotated[str, typer.Option("--mode")] = "dev",
+    blueprint_fixture: Annotated[Path | None, typer.Option("--blueprint-fixture")] = None,
 ) -> None:
+    run_mode = _cli_mode(mode)
     selected = "fake" if fake else provider
     if not selected:
         typer.echo("Choose --fake or --provider gemini.")
         raise typer.Exit(1)
-    script_provider = _build_script_provider(selected)
+    _reject_fake_in_production(selected, run_mode)
+    script_provider = _build_script_provider(selected, blueprint_fixture=blueprint_fixture)
     generate_script(episode, script_provider)
     typer.echo(episode / "blueprint.json")
 
@@ -91,11 +100,14 @@ def refs_generate(
     workflow: Annotated[Path | None, typer.Option("--workflow")] = None,
     workflow_map: Annotated[Path | None, typer.Option("--workflow-map")] = None,
     comfy_url: Annotated[str, typer.Option("--comfy-url")] = "http://127.0.0.1:8188",
+    mode: Annotated[str, typer.Option("--mode")] = "dev",
 ) -> None:
+    run_mode = _cli_mode(mode)
     selected = "fake" if fake else provider
     if not selected:
         typer.echo("Choose --fake or --provider comfy.")
         raise typer.Exit(1)
+    _reject_fake_in_production(selected, run_mode)
     image_provider = _build_image_provider(
         selected,
         workflow=workflow,
@@ -123,7 +135,9 @@ def assets_generate(
     workflow: Annotated[Path | None, typer.Option("--workflow")] = None,
     workflow_map: Annotated[Path | None, typer.Option("--workflow-map")] = None,
     comfy_url: Annotated[str, typer.Option("--comfy-url")] = "http://127.0.0.1:8188",
+    mode: Annotated[str, typer.Option("--mode")] = "dev",
 ) -> None:
+    run_mode = _cli_mode(mode)
     if fake:
         audio_provider = "fake"
         image_provider_name = "fake"
@@ -131,6 +145,8 @@ def assets_generate(
     if not audio_provider or not image_provider_name or not video_provider_name:
         typer.echo("Choose --fake or all of --audio-provider, --image-provider, and --video-provider.")
         raise typer.Exit(1)
+    for selected in [audio_provider, image_provider_name, video_provider_name]:
+        _reject_fake_in_production(selected, run_mode)
 
     image_provider = _build_image_provider(
         image_provider_name,
@@ -140,13 +156,21 @@ def assets_generate(
     )
     generate_audio(episode, _build_audio_provider(audio_provider))
     generate_images(episode, image_provider)
-    generate_video(episode, _build_video_provider(video_provider_name), image_provider)
+    generate_video(
+        episode,
+        _build_video_provider(video_provider_name),
+        image_provider,
+        mode=run_mode,
+    )
     typer.echo("assets generated")
 
 
 @assets_app.command("validate")
-def assets_validate(episode: Path) -> None:
-    report = validate_assets(episode)
+def assets_validate(
+    episode: Path,
+    mode: Annotated[str, typer.Option("--mode")] = "dev",
+) -> None:
+    report = validate_assets(episode, mode=_cli_mode(mode))
     if report.ok:
         typer.echo("assets valid")
         return
@@ -164,7 +188,9 @@ def resume(
     audio_provider: Annotated[str, typer.Option("--audio-provider")] = "",
     image_provider_name: Annotated[str, typer.Option("--image-provider")] = "",
     video_provider_name: Annotated[str, typer.Option("--video-provider")] = "",
+    mode: Annotated[str, typer.Option("--mode")] = "dev",
 ) -> None:
+    run_mode = _cli_mode(mode)
     if fake:
         audio_provider = "fake"
         image_provider_name = "fake"
@@ -172,6 +198,8 @@ def resume(
     if not audio_provider or not image_provider_name or not video_provider_name:
         typer.echo("Choose --fake or all of --audio-provider, --image-provider, and --video-provider.")
         raise typer.Exit(1)
+    for selected in [audio_provider, image_provider_name, video_provider_name]:
+        _reject_fake_in_production(selected, run_mode)
 
     resume_episode(
         episode,
@@ -182,12 +210,27 @@ def resume(
     typer.echo("episode resumed")
 
 
-def _build_script_provider(provider: str):
+@app.command()
+def render(
+    episode: Path,
+    quality: Annotated[str, typer.Option("--quality")] = "preview",
+    mode: Annotated[str, typer.Option("--mode")] = "dev",
+) -> None:
+    output_path = render_episode(episode, quality=quality, mode=_cli_mode(mode))
+    typer.echo(output_path)
+
+
+def _build_script_provider(provider: str, *, blueprint_fixture: Path | None = None):
     if provider == "fake":
         return FakeScriptProvider()
+    if provider == "fixture":
+        if blueprint_fixture is None:
+            typer.echo("Fixture provider requires --blueprint-fixture.")
+            raise typer.Exit(1)
+        return FixtureScriptProvider(blueprint_fixture)
     if provider == "gemini":
         return GeminiScriptProvider()
-    _provider_error("script", provider, ["fake", "gemini"])
+    _provider_error("script", provider, ["fake", "fixture", "gemini"])
 
 
 def _build_image_provider(
@@ -222,6 +265,8 @@ def _build_audio_provider(provider: str):
         return KokoroAudioProvider(
             model_path=os.environ.get("KOKORO_MODEL_PATH"),
             voices_path=os.environ.get("KOKORO_VOICES_PATH"),
+            voice=os.environ.get("KOKORO_VOICE", "af_heart"),
+            speed=float(os.environ.get("KOKORO_SPEED", "1.0")),
         )
     _provider_error("audio", provider, ["fake", "kokoro"])
 
@@ -242,3 +287,17 @@ def _provider_error(kind: str, provider: str, choices: list[str]) -> None:
         f"options with one of: {', '.join(choices)}."
     )
     raise typer.Exit(1)
+
+
+def _cli_mode(mode: str):
+    try:
+        return normalize_mode(mode)
+    except ValueError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(1)
+
+
+def _reject_fake_in_production(provider: str, mode: str) -> None:
+    if mode == "production" and is_fake_provider(provider):
+        typer.echo("Fake providers are disabled in production mode.")
+        raise typer.Exit(1)

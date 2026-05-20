@@ -1,5 +1,7 @@
 import json
 from pathlib import Path
+import sys
+import types
 import wave
 
 from PIL import Image
@@ -7,6 +9,7 @@ from PIL import Image
 from kuba.providers.comfyui import ComfyUIImageProvider, patch_workflow
 from kuba.providers.gemini import GeminiScriptProvider
 from kuba.providers.kokoro import KokoroAudioProvider
+from kuba.providers.kokoro import _load_kokoro_engine
 from kuba.providers.siliconflow import SiliconFlowVideoProvider
 from kuba.providers.veo import GeminiVeoVideoProvider
 
@@ -97,6 +100,33 @@ def test_kokoro_provider_uses_injected_engine(tmp_path: Path):
     output = provider.generate_audio(str(tmp_path), "audio/narration/seg.wav", "hello", 1)
 
     assert Path(output).exists()
+
+
+def test_kokoro_loader_supports_local_pytorch_model_layout(
+    tmp_path: Path, monkeypatch
+):
+    model_path = tmp_path / "kokoro-v1_0.pth"
+    voices_path = tmp_path / "voices"
+    voice_path = voices_path / "af_heart.pt"
+    model_path.write_text("model", encoding="utf-8")
+    voices_path.mkdir()
+    voice_path.write_text("voice", encoding="utf-8")
+
+    created = {}
+
+    class KPipeline:
+        def __init__(self, lang_code, model):
+            created["lang_code"] = lang_code
+            created["model"] = model
+
+    kokoro_module = types.SimpleNamespace(KPipeline=KPipeline)
+    monkeypatch.setitem(sys.modules, "kokoro", kokoro_module)
+
+    engine = _load_kokoro_engine(str(model_path), str(voices_path))
+
+    assert engine.model_path == model_path
+    assert engine.voices_path == voices_path
+    assert created["model"] == str(model_path)
 
 
 def test_gemini_script_provider_extracts_json_payload():

@@ -115,12 +115,59 @@ def test_full_fake_asset_generation_uses_fallback_when_video_fails(tmp_path: Pat
     generate_audio(episode_root, FakeAudioProvider())
     generate_images(episode_root, FakeImageProvider())
     generate_video(episode_root, FailingFakeVideoProvider(), FakeImageProvider())
-    report = validate_assets(episode_root)
+    report = validate_assets(episode_root, mode="dev")
 
     assert report.ok is True
     assert (episode_root / "images" / "fallback_stills" / "motion_0001_fallback.png").exists()
     state = EpisodeState.load(episode_root / "state.json")
     assert state.phases["validate_assets"] == PhaseStatus.COMPLETED
+
+
+def test_production_validation_fails_when_motion_uses_fallback_still(tmp_path: Path):
+    episode_root = create_episode(tmp_path / "episodes", "The River's Debt")
+    generate_script(episode_root, FakeScriptProvider())
+    generate_refs(episode_root, FakeImageProvider())
+    approve_refs(episode_root)
+    generate_audio(episode_root, FakeAudioProvider())
+    generate_images(episode_root, FakeImageProvider())
+    generate_video(episode_root, FailingFakeVideoProvider(), FakeImageProvider())
+
+    report = validate_assets(episode_root, mode="production")
+
+    assert report.ok is False
+    assert any("real mp4" in error.lower() for error in report.errors)
+
+
+def test_production_generation_fails_instead_of_falling_back_when_video_fails(tmp_path: Path):
+    episode_root = create_episode(tmp_path / "episodes", "The River's Debt")
+    generate_script(episode_root, FakeScriptProvider())
+    generate_images(episode_root, FakeImageProvider())
+
+    with pytest.raises(RuntimeError, match="production video generation failed"):
+        generate_video(
+            episode_root,
+            FailingFakeVideoProvider(),
+            FakeImageProvider(),
+            mode="production",
+        )
+
+    assert not (episode_root / "images" / "fallback_stills" / "motion_0001_fallback.png").exists()
+    state = EpisodeState.load(episode_root / "state.json")
+    assert state.phases["video_generate"] == PhaseStatus.FAILED
+
+
+def test_production_validation_fails_for_fake_provider_assets(tmp_path: Path):
+    episode_root = create_episode(tmp_path / "episodes", "The River's Debt")
+    generate_script(episode_root, FakeScriptProvider())
+    generate_refs(episode_root, FakeImageProvider())
+    approve_refs(episode_root)
+    generate_audio(episode_root, FakeAudioProvider())
+    generate_images(episode_root, FakeImageProvider())
+
+    report = validate_assets(episode_root, mode="production")
+
+    assert report.ok is False
+    assert any("fake provider" in error.lower() for error in report.errors)
 
 
 def test_validate_assets_fails_when_approved_character_ref_is_missing(tmp_path: Path):

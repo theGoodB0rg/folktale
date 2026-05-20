@@ -30,6 +30,35 @@ def test_cli_doctor_reports_missing_real_dependency(monkeypatch):
     assert "missing" in result.stdout.lower()
 
 
+def test_cli_production_mode_rejects_fake_script_provider(tmp_path):
+    CliRunner().invoke(
+        app,
+        [
+            "episode",
+            "create",
+            "--output-root",
+            str(tmp_path),
+            "--title",
+            "The River's Debt",
+        ],
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "script",
+            "generate",
+            str(tmp_path / "the-rivers-debt"),
+            "--fake",
+            "--mode",
+            "production",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "fake providers are disabled" in result.stdout.lower()
+
+
 def test_cli_create_episode(tmp_path):
     result = CliRunner().invoke(
         app,
@@ -133,6 +162,28 @@ def test_cli_script_generate_accepts_gemini_provider(monkeypatch, tmp_path):
     assert called["episode_id"] == "the-rivers-debt"
 
 
+def test_cli_script_generate_accepts_fixture_provider(tmp_path, repo_root: Path):
+    episode = _prepared_episode_without_script(tmp_path)
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "script",
+            "generate",
+            str(episode),
+            "--provider",
+            "fixture",
+            "--mode",
+            "production",
+            "--blueprint-fixture",
+            str(repo_root / "config" / "blueprints" / "vertical_slice_fixture.json"),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert (episode / "blueprint.json").exists()
+
+
 def test_cli_refs_generate_accepts_comfy_provider(monkeypatch, tmp_path):
     episode = _prepared_episode(tmp_path)
     generated = []
@@ -188,6 +239,13 @@ class FakePayload:
 
 
 def _prepared_episode(tmp_path: Path) -> Path:
+    episode = _prepared_episode_without_script(tmp_path)
+    script_result = CliRunner().invoke(app, ["script", "generate", str(episode), "--fake"])
+    assert script_result.exit_code == 0
+    return episode
+
+
+def _prepared_episode_without_script(tmp_path: Path) -> Path:
     episode = tmp_path / "the-rivers-debt"
     create_result = CliRunner().invoke(
         app,
@@ -201,8 +259,6 @@ def _prepared_episode(tmp_path: Path) -> Path:
         ],
     )
     assert create_result.exit_code == 0
-    script_result = CliRunner().invoke(app, ["script", "generate", str(episode), "--fake"])
-    assert script_result.exit_code == 0
     return episode
 
 

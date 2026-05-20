@@ -16,6 +16,7 @@ dev = [
   "pytest>=8.2"
 ]
 real = [
+  "kokoro>=0.9",
   "kokoro-onnx>=0.3.4",
   "numpy>=1.26"
 ]

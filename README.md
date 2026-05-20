@@ -71,6 +71,13 @@ Script generation can use Gemini:
 kuba script generate ../episodes/the-rivers-debt --provider gemini
 ```
 
+During production media-pipeline testing, Gemini can be bypassed with a prevalidated blueprint fixture:
+
+```powershell
+kuba script generate ../episodes/the-rivers-debt --provider fixture --mode production `
+  --blueprint-fixture ../config/blueprints/vertical_slice_fixture.json
+```
+
 The real ComfyUI image path requires a workflow saved in API format plus a YAML map identifying the node inputs to patch:
 
 ```powershell
@@ -95,8 +102,27 @@ Use `--video-provider veo` for Gemini/Veo. Cloud video failures still use the co
 Opt-in local integration checks are skipped by default. Enable them when your env vars and services are ready:
 
 ```powershell
-$env:KUBA_RUN_LOCAL_INTEGRATION="1"
+$env:KUBA_RUN_REAL_INTEGRATION="1"
 python -m pytest tests/test_local_integration.py -v
+```
+
+Production mode disables fake providers and treats video fallback stills as failed video generation:
+
+```powershell
+kuba doctor --check production
+kuba script generate ../episodes/the-rivers-debt --provider gemini --mode production
+kuba refs generate ../episodes/the-rivers-debt --provider comfy --mode production `
+  --workflow ../config/comfy/workflows/sdxl_ip_adapter_api.json `
+  --workflow-map ../config/comfy/workflows/sdxl_ip_adapter_api.map.yaml
+kuba refs approve ../episodes/the-rivers-debt
+kuba assets generate ../episodes/the-rivers-debt --mode production `
+  --audio-provider kokoro `
+  --image-provider comfy `
+  --video-provider siliconflow `
+  --workflow ../config/comfy/workflows/sdxl_ip_adapter_api.json `
+  --workflow-map ../config/comfy/workflows/sdxl_ip_adapter_api.map.yaml
+kuba assets validate ../episodes/the-rivers-debt --mode production
+kuba render ../episodes/the-rivers-debt --quality preview --mode production
 ```
 
 ## Remotion
@@ -111,7 +137,7 @@ npm run render:placeholder
 npm run render:preview
 ```
 
-`render:preview` uses `props.example.json` and static example assets under `remotion/public/example-episode`. Generated episode rendering will be wired to real episode props in a later milestone.
+`render:preview` uses `props.example.json` and static example assets under `remotion/public/example-episode`. `kuba render EPISODE --quality preview --mode production` writes episode-specific Remotion props and renders from validated generated assets.
 
 ## Current Scope
 
@@ -122,6 +148,8 @@ Implemented:
 - Media probes for images, audio, and video
 - Deterministic fake script, audio, image, and video providers
 - Real provider adapters for Gemini, Kokoro, ComfyUI, Veo, and SiliconFlow
+- Strict production mode that disables fake providers and rejects video fallback stills
+- Production doctor check for Gemini, Kokoro, ComfyUI, workflow map, ffmpeg/ffprobe, video provider credentials, and Remotion
 - Character reference review checkpoint
 - Asset validation and resume behavior
 - CLI commands for the fake vertical slice
@@ -129,7 +157,6 @@ Implemented:
 
 Not implemented yet:
 
-- Production-grade Gemini prompt/schema hardening
 - Production ComfyUI workflow templates
 - Kokoro voice/cadence tuning
 - Full 15-minute episode production

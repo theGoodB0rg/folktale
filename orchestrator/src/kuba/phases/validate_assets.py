@@ -5,6 +5,7 @@ from kuba.blueprint.loader import load_blueprint
 from kuba.media.audio_probe import probe_audio
 from kuba.media.image_probe import probe_image
 from kuba.media.video_probe import probe_video
+from kuba.mode import RunMode, is_fake_provider, normalize_mode
 from kuba.paths import resolve_episode_path
 from kuba.state.episode_state import EpisodeState, PhaseStatus
 
@@ -15,7 +16,8 @@ class AssetValidationReport:
     errors: list[str] = field(default_factory=list)
 
 
-def validate_assets(episode_root: Path) -> AssetValidationReport:
+def validate_assets(episode_root: Path, *, mode: RunMode = "dev") -> AssetValidationReport:
+    run_mode = normalize_mode(mode)
     blueprint = load_blueprint(episode_root / "blueprint.json")
     errors: list[str] = []
     required = blueprint.validation.required_assets
@@ -80,6 +82,12 @@ def validate_assets(episode_root: Path) -> AssetValidationReport:
         video_result = probe_video(video_path)
         if video_result.valid:
             continue
+        if run_mode == "production":
+            errors.append(
+                f"motion shot {shot.id} requires a real MP4 motion asset in production: "
+                f"{video_result.error or 'invalid video'}"
+            )
+            continue
         fallback_path = resolve_episode_path(episode_root, shot.fallback_asset_path)
         fallback_result = probe_image(fallback_path)
         if not fallback_result.valid:
@@ -88,6 +96,9 @@ def validate_assets(episode_root: Path) -> AssetValidationReport:
                 f"video={video_result.error or 'invalid video'}; "
                 f"fallback={fallback_result.error or 'invalid image'}"
             )
+
+    if run_mode == "production":
+        errors.extend(_fake_provider_errors(episode_root))
 
     report = AssetValidationReport(ok=not errors, errors=errors)
     state_path = episode_root / "state.json"
@@ -98,3 +109,43 @@ def validate_assets(episode_root: Path) -> AssetValidationReport:
     )
     state.save(state_path)
     return report
+
+
+def _fake_provider_errors(episode_root: Path) -> list[str]:
+    errors: list[str] = []
+    for manifest_path in [
+        episode_root / "audio" / "manifest.json",
+        episode_root / "images" / "manifest.json",
+    ]:
+        if not manifest_path.exists():
+            continue
+        import json
+
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        for entry in manifest.get("entries", []):
+            provider = str(entry.get("provider", ""))
+            if is_fake_provider(provider):
+                errors.append(
+                    f"fake provider asset is not allowed in production: "
+                    f"{entry.get('asset_id')} from {provider}"
+                )
+
+    video_manifest_path = episode_root / "video" / "manifest.json"
+    if video_manifest_path.exists():
+        import json
+
+        manifest = json.loads(video_manifest_path.read_text(encoding="utf-8"))
+        for entry in manifest.get("entries", []):
+            provider = str(entry.get("provider", ""))
+            status = str(entry.get("status", ""))
+            if is_fake_provider(provider):
+                errors.append(
+                    f"fake provider asset is not allowed in production: "
+                    f"{entry.get('asset_id')} from {provider}"
+                )
+            if status == PhaseStatus.FALLBACK_USED.value:
+                errors.append(
+                    f"fallback video asset is not allowed in production: "
+                    f"{entry.get('asset_id')}"
+                )
+    return errors

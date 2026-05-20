@@ -5,6 +5,8 @@ import os
 from typing import Any
 from urllib.request import Request, urlopen
 
+from kuba.blueprint.schema import Blueprint
+
 
 class GeminiClient:
     def __init__(self, api_key: str | None = None, model: str = "gemini-2.5-flash") -> None:
@@ -46,6 +48,6 @@ class GeminiScriptProvider:
             "5-8 scenes, narration segments, and one motion shot. "
             f"Episode id must be {episode_id}.\n\nSOURCE:\n{source_markdown}"
         )
-        payload = self.client.generate_json(prompt, schema=None)
+        payload = self.client.generate_json(prompt, schema=Blueprint.model_json_schema())
         payload.setdefault("episode", {})["id"] = episode_id
         return payload

@@ -97,6 +97,15 @@ class ComfyUIImageProvider:
         output_path.write_bytes(image_bytes)
         return str(output_path)
 
+    def smoke_generate(self, episode_root: Path) -> Path:
+        return Path(
+            self.generate_image(
+                str(episode_root),
+                "images/scenes/comfy_smoke.png",
+                "tiny smoke test image, simple river stone",
+            )
+        )
+
 
 def patch_workflow(
     workflow: dict[str, Any],
@@ -123,12 +132,29 @@ def patch_workflow(
     return patched
 
 
+def validate_workflow_map(workflow: dict[str, Any], mapping: dict[str, str]) -> list[str]:
+    errors: list[str] = []
+    for key, dotted_path in mapping.items():
+        try:
+            _get_path(workflow, dotted_path)
+        except (KeyError, TypeError) as exc:
+            errors.append(f"workflow map entry {key} does not match workflow path {dotted_path}: {exc}")
+    return errors
+
+
 def _set_path(data: dict[str, Any], dotted_path: str, value: Any) -> None:
     current: Any = data
     parts = dotted_path.split(".")
     for part in parts[:-1]:
         current = current[part]
     current[parts[-1]] = value
+
+
+def _get_path(data: dict[str, Any], dotted_path: str) -> Any:
+    current: Any = data
+    for part in dotted_path.split("."):
+        current = current[part]
+    return current
 
 
 def _first_history_image(history: dict[str, Any], prompt_id: str) -> dict[str, str] | None:
