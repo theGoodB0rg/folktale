@@ -75,3 +75,35 @@ def test_production_doctor_aggregates_required_checks(monkeypatch, tmp_path: Pat
 
     assert result.ok is True
     assert "production checks passed" in result.message
+
+
+def test_production_doctor_accepts_fixture_script_provider_without_gemini(
+    monkeypatch, tmp_path: Path
+):
+    fixture = tmp_path / "fixture.json"
+    fixture.write_text("{}", encoding="utf-8")
+    model = tmp_path / "kokoro.onnx"
+    voices = tmp_path / "voices.bin"
+    workflow = tmp_path / "workflow.json"
+    workflow_map = tmp_path / "workflow.map.yaml"
+    remotion_package = tmp_path / "remotion" / "package.json"
+    for path in [model, voices, workflow, workflow_map, remotion_package]:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}", encoding="utf-8")
+    (tmp_path / "remotion" / "node_modules").mkdir()
+
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("KUBA_SCRIPT_PROVIDER", "fixture")
+    monkeypatch.setenv("KUBA_BLUEPRINT_FIXTURE", str(fixture))
+    monkeypatch.setenv("KOKORO_MODEL_PATH", str(model))
+    monkeypatch.setenv("KOKORO_VOICES_PATH", str(voices))
+    monkeypatch.setenv("SILICONFLOW_API_KEY", "key")
+    monkeypatch.setenv("KUBA_COMFY_WORKFLOW", str(workflow))
+    monkeypatch.setenv("KUBA_COMFY_WORKFLOW_MAP", str(workflow_map))
+    monkeypatch.setenv("KUBA_REMOTION_ROOT", str(tmp_path / "remotion"))
+    monkeypatch.setattr("kuba.doctor.check_comfy", lambda: check_env("SILICONFLOW_API_KEY"))
+    monkeypatch.setattr("kuba.doctor._which", lambda name: f"/bin/{name}")
+
+    result = run_doctor_check("production")
+
+    assert result.ok is True

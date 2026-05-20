@@ -46,7 +46,12 @@ GEMINI_API_KEY=
 COMFYUI_BASE_URL=http://127.0.0.1:8188
 KOKORO_MODEL_PATH=
 KOKORO_VOICES_PATH=
+KOKORO_VOICE=af_heart
+KOKORO_SPEED=0.92
+KUBA_SCRIPT_PROVIDER=fixture
+KUBA_BLUEPRINT_FIXTURE=./config/blueprints/vertical_slice_fixture.json
 SILICONFLOW_API_KEY=
+KUBA_VIDEO_PROVIDER=siliconflow
 FFMPEG_PATH=
 REMOTION_CONCURRENCY=2
 KUBA_DEFAULT_OUTPUT_ROOT=./episodes
@@ -124,6 +129,13 @@ kuba assets generate ../episodes/the-rivers-debt --mode production `
 kuba assets validate ../episodes/the-rivers-debt --mode production
 kuba render ../episodes/the-rivers-debt --quality preview --mode production
 ```
+
+Remaining external production prerequisites:
+
+- ComfyUI must be running at `COMFYUI_BASE_URL`.
+- `KUBA_COMFY_WORKFLOW` must point to an exported ComfyUI API workflow JSON.
+- `KUBA_COMFY_WORKFLOW_MAP` must point to the matching workflow map YAML.
+- `SILICONFLOW_API_KEY` must be set for `KUBA_VIDEO_PROVIDER=siliconflow`, or use `KUBA_VIDEO_PROVIDER=veo` with `GEMINI_API_KEY`.
 
 ## Remotion
 

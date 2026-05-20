@@ -79,7 +79,7 @@ def check_remotion() -> CheckResult:
 
 def check_production() -> CheckResult:
     checks = [
-        run_doctor_check("gemini"),
+        check_script_provider(),
         run_doctor_check("kokoro"),
         check_comfy(),
         check_path(
@@ -108,6 +108,23 @@ def check_production() -> CheckResult:
     return CheckResult("production", True, "production checks passed")
 
 
+def check_script_provider() -> CheckResult:
+    provider = os.environ.get("KUBA_SCRIPT_PROVIDER", "gemini").lower()
+    if provider == "gemini":
+        result = run_doctor_check("gemini")
+        return CheckResult("script-provider:gemini", result.ok, result.message)
+    if provider == "fixture":
+        result = check_path("blueprint-fixture", os.environ.get("KUBA_BLUEPRINT_FIXTURE"))
+        if result.ok:
+            return CheckResult("script-provider:fixture", True, "fixture present")
+        return CheckResult(
+            "script-provider:fixture",
+            False,
+            f"{result.message}; set KUBA_BLUEPRINT_FIXTURE to a validated blueprint JSON",
+        )
+    return CheckResult("script-provider", False, f"unsupported: {provider}")
+
+
 def check_comfy_workflow_map() -> CheckResult:
     workflow_path = Path(
         os.environ.get("KUBA_COMFY_WORKFLOW")
@@ -118,7 +135,12 @@ def check_comfy_workflow_map() -> CheckResult:
         or _repo_root() / "config" / "comfy" / "workflows" / "sdxl_ip_adapter_api.map.yaml"
     )
     if not workflow_path.exists() or not map_path.exists():
-        return CheckResult("comfy-workflow-map-validation", False, "workflow or map missing")
+        return CheckResult(
+            "comfy-workflow-map-validation",
+            False,
+            "workflow or map missing; export a ComfyUI API workflow JSON and set "
+            "KUBA_COMFY_WORKFLOW/KUBA_COMFY_WORKFLOW_MAP",
+        )
     try:
         workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
         mapping = yaml.safe_load(map_path.read_text(encoding="utf-8")) or {}
@@ -171,7 +193,14 @@ def _selected_video_provider_check() -> CheckResult:
     if selected not in {"siliconflow", "veo"}:
         return CheckResult("video-provider", False, f"unsupported: {selected}")
     result = run_doctor_check(selected)
-    return CheckResult(f"video-provider:{selected}", result.ok, result.message)
+    if result.ok:
+        return CheckResult(f"video-provider:{selected}", True, result.message)
+    env_name = "SILICONFLOW_API_KEY" if selected == "siliconflow" else "GEMINI_API_KEY"
+    return CheckResult(
+        f"video-provider:{selected}",
+        False,
+        f"{result.message}; set {env_name} or change KUBA_VIDEO_PROVIDER",
+    )
 
 
 def _repo_root() -> Path:
