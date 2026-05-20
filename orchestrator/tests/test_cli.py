@@ -1,11 +1,16 @@
 from pathlib import Path
 
+from typer.testing import CliRunner
+
 from kuba.cli import app
 from kuba.config import load_config
 
 
-def test_cli_app_is_importable():
-    assert app is not None
+def test_cli_help_renders():
+    result = CliRunner().invoke(app, ["--help"])
+
+    assert result.exit_code == 0
+    assert "Kuba" in result.stdout
 
 
 def test_load_config_reads_default_yaml(repo_root: Path):
