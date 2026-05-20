@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 import pytest
 from pydantic import ValidationError
@@ -118,6 +119,8 @@ def test_full_fake_asset_generation_uses_fallback_when_video_fails(tmp_path: Pat
 
     assert report.ok is True
     assert (episode_root / "images" / "fallback_stills" / "motion_0001_fallback.png").exists()
+    state = EpisodeState.load(episode_root / "state.json")
+    assert state.phases["validate_assets"] == PhaseStatus.COMPLETED
 
 
 def test_validate_assets_fails_when_approved_character_ref_is_missing(tmp_path: Path):
@@ -134,6 +137,31 @@ def test_validate_assets_fails_when_approved_character_ref_is_missing(tmp_path: 
 
     assert report.ok is False
     assert any("character reference protagonist" in error for error in report.errors)
+    state = EpisodeState.load(episode_root / "state.json")
+    assert state.phases["validate_assets"] == PhaseStatus.FAILED
+
+
+def test_validate_assets_fails_when_required_still_scene_count_is_too_high(
+    tmp_path: Path,
+):
+    episode_root = create_episode(tmp_path / "episodes", "The River's Debt")
+    generate_script(episode_root, FakeScriptProvider())
+    blueprint_path = episode_root / "blueprint.json"
+    payload = json.loads(blueprint_path.read_text(encoding="utf-8"))
+    payload["validation"]["required_assets"]["still_scenes_min"] = 99
+    blueprint_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    generate_refs(episode_root, FakeImageProvider())
+    approve_refs(episode_root)
+    generate_audio(episode_root, FakeAudioProvider())
+    generate_images(episode_root, FakeImageProvider())
+    generate_video(episode_root, FailingFakeVideoProvider(), FakeImageProvider())
+
+    report = validate_assets(episode_root)
+
+    assert report.ok is False
+    assert any("still scene count" in error for error in report.errors)
+    state = EpisodeState.load(episode_root / "state.json")
+    assert state.phases["validate_assets"] == PhaseStatus.FAILED
 
 
 def test_generate_images_preserves_existing_character_manifest_entries(tmp_path: Path):
