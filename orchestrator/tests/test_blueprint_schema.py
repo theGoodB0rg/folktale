@@ -160,6 +160,50 @@ def test_blueprint_rejects_parent_path_escape():
         Blueprint.model_validate(data)
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        r"C:outside\file.png",
+        r"D:outside\file.png",
+        r"\outside\file.png",
+        r"\\server\share\file.png",
+    ],
+)
+def test_blueprint_rejects_windows_drive_root_and_unc_paths(path: str):
+    data = valid_blueprint_dict()
+    data["characters"][0]["reference_image_path"] = path
+
+    with pytest.raises(ValidationError, match="relative"):
+        Blueprint.model_validate(data)
+
+
+@pytest.mark.parametrize(
+    ("collection", "duplicate_id"),
+    [
+        ("characters", "elder"),
+        ("scenes", "scene_0001"),
+        ("motion_shots", "motion_0001"),
+    ],
+)
+def test_blueprint_rejects_duplicate_top_level_item_ids(collection: str, duplicate_id: str):
+    data = valid_blueprint_dict()
+    duplicate = data[collection][0].copy()
+    duplicate["id"] = duplicate_id
+    data[collection].append(duplicate)
+
+    with pytest.raises(ValidationError, match="duplicate"):
+        Blueprint.model_validate(data)
+
+
+def test_blueprint_rejects_duplicate_narration_segment_ids():
+    data = valid_blueprint_dict()
+    duplicate = data["narration"]["segments"][0].copy()
+    data["narration"]["segments"].append(duplicate)
+
+    with pytest.raises(ValidationError, match="duplicate"):
+        Blueprint.model_validate(data)
+
+
 def test_load_blueprint_reads_json_file(tmp_path: Path):
     path = tmp_path / "blueprint.json"
     path.write_text(json.dumps(valid_blueprint_dict()), encoding="utf-8")

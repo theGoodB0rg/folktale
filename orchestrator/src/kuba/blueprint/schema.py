@@ -155,6 +155,13 @@ class Blueprint(StrictModel):
 
     @model_validator(mode="after")
     def validate_references(self) -> "Blueprint":
+        _reject_duplicate_ids("characters", [character.id for character in self.characters])
+        _reject_duplicate_ids("scenes", [scene.id for scene in self.scenes])
+        _reject_duplicate_ids(
+            "narration segments", [segment.id for segment in self.narration.segments]
+        )
+        _reject_duplicate_ids("motion_shots", [shot.id for shot in self.motion_shots])
+
         character_ids = {character.id for character in self.characters}
         scene_ids = {scene.id for scene in self.scenes}
 
@@ -172,3 +179,11 @@ class Blueprint(StrictModel):
                 raise ValueError(f"unknown scene referenced by motion shot: {shot.scene_id}")
 
         return self
+
+
+def _reject_duplicate_ids(label: str, ids: list[str]) -> None:
+    seen: set[str] = set()
+    for item_id in ids:
+        if item_id in seen:
+            raise ValueError(f"duplicate {label} id: {item_id}")
+        seen.add(item_id)
