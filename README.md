@@ -1,8 +1,8 @@
 # Kuba-Engine
 
-Kuba-Engine is a local-first, CLI-driven vertical slice for a headless African folktale video pipeline. The current implementation proves the production shape with deterministic fake providers: script blueprint generation, character reference review, fake audio/image/video assets, fallback still handling, validation, resume behavior, and a Remotion renderer shell.
+Kuba-Engine is a local-first, CLI-driven vertical slice for a headless African folktale video pipeline. The current implementation proves the production shape with deterministic fake providers and includes smoke-testable real provider adapters for Gemini, Kokoro, ComfyUI, Veo, and SiliconFlow.
 
-This is not the full 15-minute production system yet. Real Gemini, Kokoro, ComfyUI, Veo, and SiliconFlow integrations are the next provider milestones.
+This is not the full 15-minute production system yet. Production prompt quality, ComfyUI workflow tuning, voice tuning, and full-length pacing are still next milestones.
 
 ## Python Setup
 
@@ -10,6 +10,13 @@ This is not the full 15-minute production system yet. Real Gemini, Kokoro, Comfy
 cd orchestrator
 python -m pip install -e ".[dev]"
 python -m pytest -v
+```
+
+For real local providers, install the optional runtime extras:
+
+```powershell
+cd orchestrator
+python -m pip install -e ".[dev,real]"
 ```
 
 ## Fake Vertical Slice
@@ -45,6 +52,53 @@ REMOTION_CONCURRENCY=2
 KUBA_DEFAULT_OUTPUT_ROOT=./episodes
 ```
 
+## Real Provider Smoke Path
+
+Real provider adapters are available behind explicit provider flags. Run doctor checks before generating assets:
+
+```powershell
+cd orchestrator
+kuba doctor --check python
+kuba doctor --check comfy
+kuba doctor --check kokoro
+kuba doctor --check gemini
+kuba doctor --check siliconflow
+```
+
+Script generation can use Gemini:
+
+```powershell
+kuba script generate ../episodes/the-rivers-debt --provider gemini
+```
+
+The real ComfyUI image path requires a workflow saved in API format plus a YAML map identifying the node inputs to patch:
+
+```powershell
+kuba refs generate ../episodes/the-rivers-debt --provider comfy `
+  --workflow ../config/comfy/workflows/sdxl_ip_adapter_api.json `
+  --workflow-map ../config/comfy/workflows/sdxl_ip_adapter_api.map.yaml
+```
+
+Asset generation can mix local and cloud providers:
+
+```powershell
+kuba assets generate ../episodes/the-rivers-debt `
+  --audio-provider kokoro `
+  --image-provider comfy `
+  --video-provider siliconflow `
+  --workflow ../config/comfy/workflows/sdxl_ip_adapter_api.json `
+  --workflow-map ../config/comfy/workflows/sdxl_ip_adapter_api.map.yaml
+```
+
+Use `--video-provider veo` for Gemini/Veo. Cloud video failures still use the configured image provider to create the fallback still.
+
+Opt-in local integration checks are skipped by default. Enable them when your env vars and services are ready:
+
+```powershell
+$env:KUBA_RUN_LOCAL_INTEGRATION="1"
+python -m pytest tests/test_local_integration.py -v
+```
+
 ## Remotion
 
 The Remotion package is a renderer shell. It does not call generation APIs.
@@ -67,6 +121,7 @@ Implemented:
 - Episode state and manifests
 - Media probes for images, audio, and video
 - Deterministic fake script, audio, image, and video providers
+- Real provider adapters for Gemini, Kokoro, ComfyUI, Veo, and SiliconFlow
 - Character reference review checkpoint
 - Asset validation and resume behavior
 - CLI commands for the fake vertical slice
@@ -74,9 +129,8 @@ Implemented:
 
 Not implemented yet:
 
-- Real Gemini script generation
-- Real Kokoro TTS
-- Real ComfyUI workflow execution
-- Real Veo/SiliconFlow motion generation
+- Production-grade Gemini prompt/schema hardening
+- Production ComfyUI workflow templates
+- Kokoro voice/cadence tuning
 - Full 15-minute episode production
 - Batch production dashboard

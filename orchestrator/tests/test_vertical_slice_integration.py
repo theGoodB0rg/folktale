@@ -179,3 +179,12 @@ def test_generate_images_preserves_existing_character_manifest_entries(tmp_path:
         "images/characters/river_spirit_ref.png"
     )
     assert manifest.by_asset_id("scene_0001").relative_path == "images/scenes/scene_0001.png"
+
+
+def test_generate_images_creates_motion_source_scene_image(tmp_path: Path):
+    episode_root = create_episode(tmp_path / "episodes", "The River's Debt")
+    generate_script(episode_root, FakeScriptProvider())
+
+    generate_images(episode_root, FakeImageProvider())
+
+    assert (episode_root / "images" / "scenes" / "scene_0004.png").exists()

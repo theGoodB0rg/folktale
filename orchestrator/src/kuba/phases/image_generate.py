@@ -15,8 +15,6 @@ def generate_images(episode_root: Path, image_provider: ImageProvider) -> None:
     entries_by_asset_id = {entry.asset_id: entry for entry in manifest.entries}
 
     for scene in blueprint.scenes:
-        if scene.type != "still":
-            continue
         seed_text = f"{scene.beat} {scene.visual_prompt}"
         image_provider.generate_image(str(episode_root), scene.asset_path, seed_text)
         entries_by_asset_id[scene.id] = ManifestEntry(

@@ -67,13 +67,11 @@ def validate_assets(episode_root: Path) -> AssetValidationReport:
             )
 
     for scene in blueprint.scenes:
-        if scene.type != "still":
-            continue
         path = resolve_episode_path(episode_root, scene.asset_path)
         result = probe_image(path)
         if not result.valid:
             errors.append(
-                f"still scene {scene.id} invalid at {scene.asset_path}: "
+                f"scene {scene.id} invalid at {scene.asset_path}: "
                 f"{result.error or 'invalid image'}"
             )
 

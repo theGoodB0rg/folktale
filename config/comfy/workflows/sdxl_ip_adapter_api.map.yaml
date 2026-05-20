@@ -1,0 +1,6 @@
+# Example mapping file. Update node ids to match your exported ComfyUI API workflow.
+positive_prompt: "6.inputs.text"
+negative_prompt: "7.inputs.text"
+seed: "3.inputs.seed"
+save_prefix: "28.inputs.filename_prefix"
+reference_image: "14.inputs.image"
