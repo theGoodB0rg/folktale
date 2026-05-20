@@ -1,0 +1,61 @@
+{
+  "episodeRoot": "",
+  "blueprint": {
+    "schema_version": "0.1",
+    "episode": {
+      "id": "preview",
+      "title": "Preview",
+      "duration_sec": 2,
+      "format": "youtube_landscape"
+    },
+    "render": {
+      "fps": 30,
+      "preview": {
+        "width": 1280,
+        "height": 720
+      },
+      "final": {
+        "width": 1920,
+        "height": 1080
+      },
+      "audio": {
+        "mode": "narration_only",
+        "normalize": true
+      }
+    },
+    "narration": {
+      "voice_profile": "config/voices/narrator.yaml",
+      "segments": [
+        {
+          "id": "seg_0001",
+          "scene_id": "scene_0001",
+          "text": "The river remembered every promise.",
+          "start_sec": 0,
+          "target_duration_sec": 2,
+          "audio_path": "audio/narration/seg_0001.wav"
+        }
+      ]
+    },
+    "scenes": [
+      {
+        "id": "scene_0001",
+        "type": "still",
+        "start_sec": 0,
+        "end_sec": 2,
+        "beat": "preview still",
+        "characters_present": [],
+        "identity_lock": {},
+        "visual_prompt": {
+          "environment": "river at dawn"
+        },
+        "asset_path": "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%201280%20720'%3E%3Crect%20width='1280'%20height='720'%20fill='%2318120d'/%3E%3Cpath%20d='M0%20500%20C260%20430%20470%20570%20720%20500%20S1100%20440%201280%20510%20V720%20H0Z'%20fill='%23335f73'/%3E%3Ccircle%20cx='1010'%20cy='150'%20r='70'%20fill='%23f1c36d'/%3E%3C/svg%3E",
+        "camera_motion": {
+          "type": "slow_push_in",
+          "intensity": 0.12
+        },
+        "transition_out": "none"
+      }
+    ],
+    "motion_shots": []
+  }
+}
