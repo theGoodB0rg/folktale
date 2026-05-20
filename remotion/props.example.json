@@ -1,5 +1,5 @@
 {
-  "episodeRoot": "../episodes/the-rivers-debt",
+  "episodeRoot": "example-episode",
   "blueprint": {
     "schema_version": "0.1",
     "episode": {
@@ -48,7 +48,7 @@
         "visual_prompt": {
           "environment": "river at dawn"
         },
-        "asset_path": "images/scenes/scene_0001.png",
+        "asset_path": "images/scenes/scene_0001.svg",
         "camera_motion": {
           "type": "slow_push_in",
           "intensity": 0.12
@@ -56,18 +56,6 @@
         "transition_out": "none"
       }
     ],
-    "motion_shots": [
-      {
-        "id": "motion_0001",
-        "scene_id": "scene_0001",
-        "provider": "example",
-        "duration_sec": 2,
-        "prompt": "river at dawn",
-        "source_image_path": "images/scenes/scene_0001.png",
-        "asset_path": "video/motion/motion_0001.mp4",
-        "fallback_asset_path": "images/fallback_stills/motion_0001_fallback.png",
-        "audio_policy": "strip"
-      }
-    ]
+    "motion_shots": []
   }
 }

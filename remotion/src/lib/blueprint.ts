@@ -1,3 +1,4 @@
+import {staticFile} from 'remotion';
 import {z} from 'zod';
 
 const renderSizeSchema = z.object({
@@ -133,7 +134,7 @@ export const resolveEpisodeAsset = (
     return filesystemPathToFileUrl(joinedPath);
   }
 
-  return joinedPath;
+  return staticFile(joinedPath);
 };
 
 const isPreservedMediaSrc = (assetPath: string): boolean =>
@@ -194,6 +195,6 @@ export const assetSourceTypecheckExamples: readonly string[] = [
   resolveEpisodeAsset('https://example.com/scene.png', undefined),
   resolveEpisodeAsset('C:/episodes/river debt/scene 1.png', undefined),
   resolveEpisodeAsset('images/scenes/scene_0001.png', 'C:/episodes/the-rivers-debt'),
-  resolveEpisodeAsset('images/scenes/scene_0001.png', '../episodes/the-rivers-debt'),
+  resolveEpisodeAsset('images/scenes/scene_0001.svg', 'example-episode'),
   resolveEpisodeAsset('images/scenes/scene_0001.png', undefined),
 ];
