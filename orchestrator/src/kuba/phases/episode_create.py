@@ -1,4 +1,3 @@
-import re
 import unicodedata
 from pathlib import Path
 
@@ -31,13 +30,24 @@ def create_episode(output_root: Path, title: str) -> Path:
 
 
 def _slugify(value: str) -> str:
-    transliterated = (
-        unicodedata.normalize("NFKD", value)
-        .encode("ascii", "ignore")
-        .decode("ascii")
-    )
-    normalized = re.sub(r"['’]", "", transliterated.lower())
-    slug = re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
+    normalized = unicodedata.normalize("NFKD", value.lower())
+    slug_parts: list[str] = []
+    pending_separator = False
+
+    for character in normalized:
+        if unicodedata.combining(character):
+            continue
+        if character in {"'", "’"}:
+            continue
+        if character.isalnum():
+            if pending_separator and slug_parts:
+                slug_parts.append("-")
+            slug_parts.append(character)
+            pending_separator = False
+        else:
+            pending_separator = bool(slug_parts)
+
+    slug = "".join(slug_parts).strip("-")
     if not slug:
         raise ValueError("episode title must contain at least one alphanumeric character")
     return slug

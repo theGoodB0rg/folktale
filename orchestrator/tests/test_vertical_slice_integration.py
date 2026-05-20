@@ -41,9 +41,21 @@ def test_create_episode_transliterates_unicode_title(tmp_path: Path):
     assert episode_root.name == "eko-river"
 
 
-def test_create_episode_raises_when_title_has_no_slug_characters(tmp_path: Path):
+def test_create_episode_preserves_non_latin_alphanumeric_title(tmp_path: Path):
+    episode_root = create_episode(tmp_path / "episodes", "漢字")
+
+    assert episode_root.name == "漢字"
+
+
+def test_create_episode_preserves_mixed_unicode_alphanumeric_title(tmp_path: Path):
+    episode_root = create_episode(tmp_path / "episodes", "River 漢字 Tale")
+
+    assert episode_root.name == "river-漢字-tale"
+
+
+def test_create_episode_raises_when_title_has_no_alphanumeric_slug_characters(tmp_path: Path):
     with pytest.raises(ValueError, match="alphanumeric"):
-        create_episode(tmp_path / "episodes", "漢字")
+        create_episode(tmp_path / "episodes", "!!!")
 
 
 def test_generate_script_uses_episode_directory_slug_as_blueprint_id(tmp_path: Path):
