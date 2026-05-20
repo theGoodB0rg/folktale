@@ -1,0 +1,7 @@
+voice_id: narrator
+engine: kokoro
+base_voice: selected_supported_voice
+speed: 0.92
+sample_rate: 24000
+style_vector_path: null
+pronunciation_overrides: {}

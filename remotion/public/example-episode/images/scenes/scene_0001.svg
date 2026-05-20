@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="Example river scene">
+  <rect width="1280" height="720" fill="#18120d"/>
+  <rect y="0" width="1280" height="390" fill="#23414a"/>
+  <circle cx="1010" cy="145" r="74" fill="#f1c36d"/>
+  <path d="M0 480 C220 420 420 555 650 505 C880 455 1050 430 1280 505 L1280 720 L0 720 Z" fill="#315f73"/>
+  <path d="M0 540 C250 500 500 590 760 545 C980 508 1130 520 1280 570 L1280 720 L0 720 Z" fill="#214b5d"/>
+  <path d="M125 430 C210 355 270 360 350 430" stroke="#5f7d4d" stroke-width="30" fill="none" stroke-linecap="round"/>
+  <path d="M420 430 C505 340 590 355 665 430" stroke="#6f8950" stroke-width="28" fill="none" stroke-linecap="round"/>
+</svg>
