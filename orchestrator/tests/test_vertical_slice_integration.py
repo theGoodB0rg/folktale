@@ -4,10 +4,20 @@ import pytest
 from pydantic import ValidationError
 
 from kuba.blueprint.loader import load_blueprint
+from kuba.phases.audio_generate import generate_audio
+from kuba.phases.character_refs import approve_refs, generate_refs
 from kuba.phases.episode_create import create_episode
+from kuba.phases.image_generate import generate_images
 from kuba.phases.script_generate import generate_script
-from kuba.providers.fake import FakeScriptProvider
-from kuba.state.episode_state import EpisodeState, PhaseStatus
+from kuba.phases.validate_assets import validate_assets
+from kuba.phases.video_generate import generate_video
+from kuba.providers.fake import (
+    FakeAudioProvider,
+    FakeImageProvider,
+    FakeScriptProvider,
+    FailingFakeVideoProvider,
+)
+from kuba.state.episode_state import EpisodeState, Manifest, PhaseStatus
 
 
 def test_create_episode_and_generate_fake_blueprint(tmp_path: Path):
@@ -93,3 +103,51 @@ class InvalidDurationScriptProvider:
         payload = FakeScriptProvider().generate_script(source_markdown, episode_id)
         payload["episode"]["duration_sec"] = 12
         return payload
+
+
+def test_full_fake_asset_generation_uses_fallback_when_video_fails(tmp_path: Path):
+    episode_root = create_episode(tmp_path / "episodes", "The River's Debt")
+    generate_script(episode_root, FakeScriptProvider())
+    generate_refs(episode_root, FakeImageProvider())
+    approve_refs(episode_root)
+
+    generate_audio(episode_root, FakeAudioProvider())
+    generate_images(episode_root, FakeImageProvider())
+    generate_video(episode_root, FailingFakeVideoProvider(), FakeImageProvider())
+    report = validate_assets(episode_root)
+
+    assert report.ok is True
+    assert (episode_root / "images" / "fallback_stills" / "motion_0001_fallback.png").exists()
+
+
+def test_validate_assets_fails_when_approved_character_ref_is_missing(tmp_path: Path):
+    episode_root = create_episode(tmp_path / "episodes", "The River's Debt")
+    generate_script(episode_root, FakeScriptProvider())
+    generate_refs(episode_root, FakeImageProvider())
+    approve_refs(episode_root)
+    generate_audio(episode_root, FakeAudioProvider())
+    generate_images(episode_root, FakeImageProvider())
+    generate_video(episode_root, FailingFakeVideoProvider(), FakeImageProvider())
+    (episode_root / "images" / "characters" / "protagonist_ref.png").unlink()
+
+    report = validate_assets(episode_root)
+
+    assert report.ok is False
+    assert any("character reference protagonist" in error for error in report.errors)
+
+
+def test_generate_images_preserves_existing_character_manifest_entries(tmp_path: Path):
+    episode_root = create_episode(tmp_path / "episodes", "The River's Debt")
+    generate_script(episode_root, FakeScriptProvider())
+    generate_refs(episode_root, FakeImageProvider())
+
+    generate_images(episode_root, FakeImageProvider())
+
+    manifest = Manifest.load(episode_root / "images" / "manifest.json")
+    assert manifest.by_asset_id("protagonist").relative_path == (
+        "images/characters/protagonist_ref.png"
+    )
+    assert manifest.by_asset_id("river_spirit").relative_path == (
+        "images/characters/river_spirit_ref.png"
+    )
+    assert manifest.by_asset_id("scene_0001").relative_path == "images/scenes/scene_0001.png"

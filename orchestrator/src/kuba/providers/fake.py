@@ -1,5 +1,7 @@
 import hashlib
+import math
 from pathlib import Path
+import wave
 
 from PIL import Image
 
@@ -194,3 +196,51 @@ class FakeImageProvider:
 
         image.save(output_path, format="PNG")
         return str(output_path)
+
+
+class FakeAudioProvider:
+    provider_name = "fake"
+
+    def generate_audio(
+        self,
+        episode_root: str,
+        relative_path: str,
+        text: str,
+        duration_sec: float,
+    ) -> str:
+        output_path = resolve_episode_path(Path(episode_root), relative_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        frame_rate = 8000
+        frame_count = max(1, int(duration_sec * frame_rate))
+        digest = hashlib.sha256(f"{relative_path}:{text}".encode("utf-8")).digest()
+        frequency = 220 + digest[0]
+        amplitude = 16000
+
+        with wave.open(str(output_path), "wb") as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(frame_rate)
+            frames = bytearray()
+            for index in range(frame_count):
+                sample = int(
+                    amplitude * math.sin(2 * math.pi * frequency * index / frame_rate)
+                )
+                frames.extend(sample.to_bytes(2, byteorder="little", signed=True))
+            wav_file.writeframes(bytes(frames))
+
+        return str(output_path)
+
+
+class FailingFakeVideoProvider:
+    provider_name = "fake-failing"
+
+    def generate_video(
+        self,
+        episode_root: str,
+        relative_path: str,
+        source_image_path: str,
+        prompt: str,
+        duration_sec: float,
+    ) -> str:
+        raise RuntimeError("fake motion generation failed")
