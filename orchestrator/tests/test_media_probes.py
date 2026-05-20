@@ -206,3 +206,65 @@ def test_probe_video_handles_ffprobe_timeout(tmp_path: Path, monkeypatch):
     assert info.has_audio is None
     assert info.error is not None
     assert "timeout" in info.error.lower() or "timed out" in info.error.lower()
+
+
+def test_probe_video_handles_malformed_ffprobe_json(tmp_path: Path, monkeypatch):
+    path = tmp_path / "clip.mp4"
+    path.write_bytes(b"video")
+
+    def run_ffprobe(*args, **kwargs):
+        return SimpleNamespace(stdout="{")
+
+    monkeypatch.setattr(subprocess, "run", run_ffprobe)
+
+    info = probe_video(path)
+
+    assert info.exists is True
+    assert info.valid is False
+    assert info.error is not None
+
+
+def test_probe_video_handles_missing_video_stream(tmp_path: Path, monkeypatch):
+    path = tmp_path / "clip.mp4"
+    path.write_bytes(b"video")
+
+    def run_ffprobe(*args, **kwargs):
+        return SimpleNamespace(
+            stdout=json.dumps(
+                {
+                    "format": {"duration": "2.5"},
+                    "streams": [{"codec_type": "audio"}],
+                }
+            )
+        )
+
+    monkeypatch.setattr(subprocess, "run", run_ffprobe)
+
+    info = probe_video(path)
+
+    assert info.exists is True
+    assert info.valid is False
+    assert info.error is not None
+
+
+def test_probe_video_handles_missing_dimensions(tmp_path: Path, monkeypatch):
+    path = tmp_path / "clip.mp4"
+    path.write_bytes(b"video")
+
+    def run_ffprobe(*args, **kwargs):
+        return SimpleNamespace(
+            stdout=json.dumps(
+                {
+                    "format": {"duration": "2.5"},
+                    "streams": [{"codec_type": "video", "width": 1920}],
+                }
+            )
+        )
+
+    monkeypatch.setattr(subprocess, "run", run_ffprobe)
+
+    info = probe_video(path)
+
+    assert info.exists is True
+    assert info.valid is False
+    assert info.error is not None
