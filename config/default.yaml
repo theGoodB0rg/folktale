@@ -1,0 +1,12 @@
+render:
+  fps: 30
+  preview:
+    width: 1280
+    height: 720
+  final:
+    width: 1920
+    height: 1080
+comfy:
+  base_url: "http://127.0.0.1:8188"
+  workflow_path: "config/comfy/workflows/sdxl_ip_adapter_api.json"
+  workflow_map_path: "config/comfy/workflows/sdxl_ip_adapter_api.map.yaml"
