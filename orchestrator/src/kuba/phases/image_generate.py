@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from kuba.blueprint.loader import load_blueprint
+from kuba.planning.shot_plan import build_scene_prompt
 from kuba.providers.base import ImageProvider
 from kuba.state.episode_state import EpisodeState, Manifest, ManifestEntry, PhaseStatus
 
@@ -21,7 +22,18 @@ def generate_images(episode_root: Path, image_provider: ImageProvider) -> None:
 
     for scene in blueprint.scenes:
         environment = scene.visual_prompt.get("environment", str(scene.visual_prompt))
-        seed_text = f"{scene.beat} {environment}"
+        shot_kind = str(
+            scene.visual_prompt.get(
+                "shot_kind",
+                scene.camera_motion.get("type", "wide_action"),
+            )
+        )
+        seed_text = build_scene_prompt(
+            beat=scene.beat,
+            environment=environment,
+            characters=list(scene.characters_present),
+            shot_kind=shot_kind,
+        )
 
         ref_path: str | None = None
         for character_id in scene.characters_present:
