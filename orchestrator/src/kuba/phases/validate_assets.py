@@ -8,6 +8,7 @@ from kuba.media.video_probe import probe_video
 from kuba.mode import RunMode, is_fake_provider, normalize_mode
 from kuba.paths import resolve_episode_path
 from kuba.quality.story_timing import analyze_story_timing
+from kuba.quality.visual_diversity import analyze_visual_diversity
 from kuba.state.episode_state import EpisodeState, PhaseStatus
 
 
@@ -102,6 +103,12 @@ def validate_assets(episode_root: Path, *, mode: RunMode = "dev") -> AssetValida
             )
 
     if run_mode == "production":
+        scene_paths = [
+            resolve_episode_path(episode_root, scene.asset_path)
+            for scene in blueprint.scenes
+        ]
+        visual_report = analyze_visual_diversity(scene_paths)
+        errors.extend(visual_report.issues)
         timing_report = analyze_story_timing(
             {
                 "episode_duration_sec": blueprint.episode.duration_sec,
