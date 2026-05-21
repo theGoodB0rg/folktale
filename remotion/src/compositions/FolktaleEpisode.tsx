@@ -1,6 +1,7 @@
 import {AbsoluteFill, Sequence} from 'remotion';
 import {CaptionLayer} from '../components/CaptionLayer';
 import {MotionClip} from '../components/MotionClip';
+import {NarrationAudioLayer} from '../components/NarrationAudioLayer';
 import {SceneStill} from '../components/SceneStill';
 import type {FolktaleEpisodeProps} from '../lib/blueprint';
 import {getBlueprintFps} from '../lib/blueprint';
@@ -64,6 +65,11 @@ export const FolktaleEpisode = ({
           </Sequence>
         );
       })}
+      <NarrationAudioLayer
+        segments={blueprint.narration.segments}
+        episodeRoot={episodeRoot}
+        fps={fps}
+      />
       <CaptionLayer segments={blueprint.narration.segments} fps={fps} />
     </AbsoluteFill>
   );

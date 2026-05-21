@@ -14,9 +14,28 @@ def generate_images(episode_root: Path, image_provider: ImageProvider) -> None:
     manifest = _load_or_create_manifest(manifest_path)
     entries_by_asset_id = {entry.asset_id: entry for entry in manifest.entries}
 
+    character_ref_map = {
+        character.id: character.reference_image_path
+        for character in blueprint.characters
+    }
+
     for scene in blueprint.scenes:
-        seed_text = f"{scene.beat} {scene.visual_prompt}"
-        image_provider.generate_image(str(episode_root), scene.asset_path, seed_text)
+        environment = scene.visual_prompt.get("environment", str(scene.visual_prompt))
+        seed_text = f"{scene.beat} {environment}"
+
+        ref_path: str | None = None
+        for character_id in scene.characters_present:
+            path = character_ref_map.get(character_id)
+            if path is not None:
+                ref_path = path
+                break
+
+        image_provider.generate_image(
+            str(episode_root),
+            scene.asset_path,
+            seed_text,
+            reference_image_path=ref_path,
+        )
         entries_by_asset_id[scene.id] = ManifestEntry(
             asset_id=scene.id,
             blueprint_ref=scene.id,

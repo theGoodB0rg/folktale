@@ -134,6 +134,10 @@ export const resolveEpisodeAsset = (
     return filesystemPathToFileUrl(joinedPath);
   }
 
+  if (episodeRoot.startsWith('http://') || episodeRoot.startsWith('https://')) {
+    return joinedPath;
+  }
+
   return staticFile(joinedPath);
 };
 

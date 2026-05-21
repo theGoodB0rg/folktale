@@ -99,7 +99,7 @@ def refs_generate(
     provider: Annotated[str, typer.Option("--provider")] = "",
     workflow: Annotated[Path | None, typer.Option("--workflow")] = None,
     workflow_map: Annotated[Path | None, typer.Option("--workflow-map")] = None,
-    comfy_url: Annotated[str, typer.Option("--comfy-url")] = "http://127.0.0.1:8188",
+    comfy_url: Annotated[str, typer.Option("--comfy-url")] = "",
     mode: Annotated[str, typer.Option("--mode")] = "dev",
 ) -> None:
     run_mode = _cli_mode(mode)
@@ -134,7 +134,7 @@ def assets_generate(
     video_provider_name: Annotated[str, typer.Option("--video-provider")] = "",
     workflow: Annotated[Path | None, typer.Option("--workflow")] = None,
     workflow_map: Annotated[Path | None, typer.Option("--workflow-map")] = None,
-    comfy_url: Annotated[str, typer.Option("--comfy-url")] = "http://127.0.0.1:8188",
+    comfy_url: Annotated[str, typer.Option("--comfy-url")] = "",
     mode: Annotated[str, typer.Option("--mode")] = "dev",
 ) -> None:
     run_mode = _cli_mode(mode)
@@ -238,7 +238,7 @@ def _build_image_provider(
     *,
     workflow: Path | None = None,
     workflow_map: Path | None = None,
-    comfy_url: str = "http://127.0.0.1:8188",
+    comfy_url: str = "",
 ):
     if provider == "fake":
         return FakeImageProvider()
@@ -248,10 +248,12 @@ def _build_image_provider(
             raise typer.Exit(1)
         from kuba.providers.comfyui import ComfyUIClient
 
+        import os
+        base_url = comfy_url or os.environ.get("COMFYUI_BASE_URL", "http://127.0.0.1:8188")
         return ComfyUIImageProvider(
             workflow_path=workflow,
             workflow_map_path=workflow_map,
-            client=ComfyUIClient(comfy_url),
+            client=ComfyUIClient(base_url),
         )
     _provider_error("image", provider, ["fake", "comfy"])
 

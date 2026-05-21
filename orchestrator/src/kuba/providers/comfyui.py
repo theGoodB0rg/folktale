@@ -18,6 +18,26 @@ class ComfyUIClient:
         self.base_url = base_url.rstrip("/")
         self.timeout_sec = timeout_sec
 
+    def upload_image(self, image_bytes: bytes, filename: str) -> str:
+        boundary = b"----ComfyUIFormBoundary" + str(time.time()).encode()
+        body = b""
+        body += b"--" + boundary + b"\r\n"
+        body += f'Content-Disposition: form-data; name="image"; filename="{filename}"\r\n'.encode()
+        body += b"Content-Type: image/png\r\n\r\n"
+        body += image_bytes
+        body += b"\r\n"
+        body += b"--" + boundary + b"--\r\n"
+
+        request = Request(
+            f"{self.base_url}/upload/image",
+            data=body,
+            headers={"Content-Type": f"multipart/form-data; boundary={boundary.decode()}"},
+            method="POST",
+        )
+        with urlopen(request, timeout=self.timeout_sec) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        return str(data.get("name", filename))
+
     def post_prompt(self, prompt: dict[str, Any]) -> str:
         payload = json.dumps({"prompt": prompt}).encode("utf-8")
         request = Request(
@@ -76,11 +96,25 @@ class ComfyUIImageProvider:
         self.workflow_map_path = workflow_map_path
         self.client = client or ComfyUIClient()
 
-    def generate_image(self, episode_root: str, relative_path: str, seed_text: str) -> str:
+    def generate_image(
+        self,
+        episode_root: str,
+        relative_path: str,
+        seed_text: str,
+        reference_image_path: str | None = None,
+    ) -> str:
         workflow = json.loads(self.workflow_path.read_text(encoding="utf-8"))
         mapping = yaml.safe_load(self.workflow_map_path.read_text(encoding="utf-8")) or {}
         output_path = resolve_episode_path(Path(episode_root), relative_path)
         output_prefix = output_path.with_suffix("").name
+
+        image_reference: str | None = None
+        if reference_image_path is not None:
+            ref_full_path = resolve_episode_path(Path(episode_root), reference_image_path)
+            if ref_full_path.exists():
+                ref_bytes = ref_full_path.read_bytes()
+                image_reference = self.client.upload_image(ref_bytes, ref_full_path.name)
+
         prompt = patch_workflow(
             workflow,
             mapping,
@@ -88,7 +122,7 @@ class ComfyUIImageProvider:
             negative_prompt="",
             seed=0,
             output_prefix=output_prefix,
-            reference_image_path=None,
+            reference_image_path=image_reference,
         )
         prompt_id = self.client.post_prompt(prompt)
         image_ref = self.client.wait_for_output_image(prompt_id)

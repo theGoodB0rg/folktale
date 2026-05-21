@@ -9,7 +9,13 @@ class ScriptProvider(Protocol):
 class ImageProvider(Protocol):
     provider_name: str
 
-    def generate_image(self, episode_root: str, relative_path: str, seed_text: str) -> str:
+    def generate_image(
+        self,
+        episode_root: str,
+        relative_path: str,
+        seed_text: str,
+        reference_image_path: str | None = None,
+    ) -> str:
         """Write an image for a blueprint-relative path and return its absolute path."""
 
 

@@ -1,6 +1,7 @@
-# Example mapping file. Update node ids to match your exported ComfyUI API workflow.
-positive_prompt: "6.inputs.text"
-negative_prompt: "7.inputs.text"
-seed: "3.inputs.seed"
-save_prefix: "28.inputs.filename_prefix"
-reference_image: "14.inputs.image"
+# Mapping file for sdxl_ip_adapter_api.json
+# SD 1.5 text-to-image with IP-Adapter for character-consistent generation.
+positive_prompt: "2.inputs.text"
+negative_prompt: "3.inputs.text"
+seed: "8.inputs.seed"
+save_prefix: "10.inputs.filename_prefix"
+reference_image: "5.inputs.image"

@@ -179,7 +179,13 @@ class FakeScriptProvider:
 class FakeImageProvider:
     provider_name = "fake"
 
-    def generate_image(self, episode_root: str, relative_path: str, seed_text: str) -> str:
+    def generate_image(
+        self,
+        episode_root: str,
+        relative_path: str,
+        seed_text: str,
+        reference_image_path: str | None = None,
+    ) -> str:
         output_path = resolve_episode_path(Path(episode_root), relative_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
