@@ -3,7 +3,7 @@
   "episode": {
     "id": "the-rivers-debt",
     "title": "The River's Debt",
-    "duration_sec": 78,
+    "duration_sec": 72,
     "format": "vertical_slice"
   },
   "render": {
@@ -24,7 +24,7 @@
   "style": {
     "visual_style": "cinematic Kuba folktale vertical short",
     "palette": "river clay, raffia gold, indigo night, forest green",
-    "negative_prompt": "watermark, text, logo, distorted faces"
+    "negative_prompt": "watermark, text, logo, distorted faces, centered studio portrait, repeated composition"
   },
   "characters": [
     {
@@ -38,8 +38,9 @@
         "face": "required"
       },
       "identity_prompt": {
-        "age": "young villager",
-        "wardrobe": "woven raffia sash and blue wrap"
+        "age": "young Kuba villager",
+        "wardrobe": "woven raffia sash and blue wrap",
+        "distinguishing_features": "calm determined eyes, blue head wrap, carved calabash"
       },
       "flexibility": {
         "pose": "flexible",
@@ -58,7 +59,8 @@
       },
       "identity_prompt": {
         "presence": "glowing elder figure formed from river mist",
-        "wardrobe": "pearl shells and dark woven cloth"
+        "wardrobe": "pearl shells and dark woven cloth",
+        "distinguishing_features": "mist hair, luminous eyes, translucent water shape"
       },
       "flexibility": {
         "pose": "flexible",
@@ -72,50 +74,58 @@
       {
         "id": "seg_0001",
         "scene_id": "scene_0001",
-        "text": "At dawn, Nia found the river lower than any elder remembered.",
+        "text": "At dawn, Nia stepped into the empty riverbed and found fish bones shining where water should have been.",
         "start_sec": 0,
-        "target_duration_sec": 12,
+        "target_duration_sec": 10,
         "audio_path": "audio/narration/seg_0001.wav"
       },
       {
         "id": "seg_0002",
         "scene_id": "scene_0002",
-        "text": "Her grandmother spoke of a debt promised before Nia was born.",
-        "start_sec": 12,
-        "target_duration_sec": 12,
+        "text": "Her grandmother tied the blue sash tighter and named the debt their family had hidden for a generation.",
+        "start_sec": 10,
+        "target_duration_sec": 10,
         "audio_path": "audio/narration/seg_0002.wav"
       },
       {
         "id": "seg_0003",
         "scene_id": "scene_0003",
-        "text": "Nia carried a carved calabash to the oldest bend in the water.",
-        "start_sec": 24,
-        "target_duration_sec": 14,
+        "text": "The carved calabash rolled ahead of Nia, stopping beside stones marked with the river spirit's old warning.",
+        "start_sec": 20,
+        "target_duration_sec": 10,
         "audio_path": "audio/narration/seg_0003.wav"
       },
       {
         "id": "seg_0004",
         "scene_id": "scene_0004",
-        "text": "Mist rose, and the river spirit asked for courage instead of gold.",
-        "start_sec": 38,
-        "target_duration_sec": 14,
+        "text": "Nia ran past the raffia palms before fear could turn her back toward the silent village.",
+        "start_sec": 30,
+        "target_duration_sec": 10,
         "audio_path": "audio/narration/seg_0004.wav"
       },
       {
         "id": "seg_0005",
         "scene_id": "scene_0005",
-        "text": "Nia returned what the village had taken and sang the old apology.",
-        "start_sec": 52,
-        "target_duration_sec": 13,
+        "text": "She poured the first offering into dust and promised to return what her people had taken.",
+        "start_sec": 40,
+        "target_duration_sec": 10,
         "audio_path": "audio/narration/seg_0005.wav"
       },
       {
         "id": "seg_0006",
         "scene_id": "scene_0006",
-        "text": "By sunset, the river flowed again, carrying the promise forward.",
-        "start_sec": 65,
-        "target_duration_sec": 13,
+        "text": "Mist climbed from the cracked earth, and the river spirit rose, asking for courage instead of gold.",
+        "start_sec": 50,
+        "target_duration_sec": 10,
         "audio_path": "audio/narration/seg_0006.wav"
+      },
+      {
+        "id": "seg_0007",
+        "scene_id": "scene_0008",
+        "text": "Nia carried the stolen stones home, and the water followed her song back through the valley.",
+        "start_sec": 60,
+        "target_duration_sec": 12,
+        "audio_path": "audio/narration/seg_0007.wav"
       }
     ]
   },
@@ -124,149 +134,190 @@
       "id": "scene_0001",
       "type": "still",
       "start_sec": 0,
-      "end_sec": 12,
-      "beat": "The riverbed is exposed at dawn.",
-      "characters_present": [
-        "protagonist"
-      ],
-      "identity_lock": {
-        "protagonist": "strict"
-      },
+      "end_sec": 8,
+      "beat": "Nia sees the riverbed cracked open at dawn.",
+      "characters_present": ["protagonist"],
+      "identity_lock": {"protagonist": "strict"},
       "visual_prompt": {
-        "environment": "wide dry river at dawn, Kuba village beyond reeds"
+        "environment": "wide dry river at dawn, Kuba village beyond reeds, cracked mud and fish bones",
+        "shot_kind": "wide_action"
       },
       "asset_path": "images/scenes/scene_0001.png",
-      "camera_motion": {
-        "type": "slow_push_in",
-        "intensity": 0.12
-      },
+      "camera_motion": {"type": "slow_push_in", "intensity": 0.18},
       "transition_out": "crossfade"
     },
     {
       "id": "scene_0002",
-      "type": "still",
-      "start_sec": 12,
-      "end_sec": 24,
-      "beat": "The debt is named by the family elder.",
-      "characters_present": [
-        "protagonist"
-      ],
-      "identity_lock": {
-        "protagonist": "strict"
-      },
+      "type": "motion",
+      "start_sec": 8,
+      "end_sec": 16,
+      "beat": "Her calabash rolls into a dry channel and stops beside old carved stones.",
+      "characters_present": ["protagonist"],
+      "identity_lock": {"protagonist": "strict"},
       "visual_prompt": {
-        "environment": "mud courtyard with carved calabash and woven mats"
+        "environment": "low angle dry river channel, carved calabash, old river stones, dust trail",
+        "shot_kind": "insert"
       },
       "asset_path": "images/scenes/scene_0002.png",
-      "camera_motion": {
-        "type": "locked_off",
-        "intensity": 0
-      },
+      "camera_motion": {"type": "tracking_insert", "intensity": 0.22},
       "transition_out": "crossfade"
     },
     {
       "id": "scene_0003",
       "type": "still",
-      "start_sec": 24,
-      "end_sec": 38,
-      "beat": "Nia approaches the sacred bend.",
-      "characters_present": [
-        "protagonist"
-      ],
-      "identity_lock": {
-        "protagonist": "strict"
-      },
+      "start_sec": 16,
+      "end_sec": 24,
+      "beat": "Grandmother points to the debt mark woven into Nia's blue sash.",
+      "characters_present": ["protagonist"],
+      "identity_lock": {"protagonist": "strict"},
       "visual_prompt": {
-        "environment": "narrow river bend under raffia palms"
+        "environment": "mud courtyard, elder hands pointing at blue woven sash, family doorway behind",
+        "shot_kind": "reaction"
       },
       "asset_path": "images/scenes/scene_0003.png",
-      "camera_motion": {
-        "type": "slow_pan",
-        "intensity": 0.16
-      },
+      "camera_motion": {"type": "slow_pan", "intensity": 0.14},
       "transition_out": "crossfade"
     },
     {
       "id": "scene_0004",
       "type": "motion",
-      "start_sec": 38,
-      "end_sec": 52,
-      "beat": "The river spirit appears in the mist.",
-      "characters_present": [
-        "protagonist",
-        "river_spirit"
-      ],
-      "identity_lock": {
-        "protagonist": "strict",
-        "river_spirit": "strict"
-      },
+      "start_sec": 24,
+      "end_sec": 32,
+      "beat": "Nia runs from the village toward the sacred bend with the calabash.",
+      "characters_present": ["protagonist"],
+      "identity_lock": {"protagonist": "strict"},
       "visual_prompt": {
-        "environment": "misty water surface with glowing spirit silhouette"
+        "environment": "raffia palms, village path, sacred river bend in distance, dust rising",
+        "shot_kind": "wide_action"
       },
       "asset_path": "images/scenes/scene_0004.png",
-      "camera_motion": {
-        "type": "mist_reveal",
-        "intensity": 0.25
-      },
+      "camera_motion": {"type": "running_follow", "intensity": 0.28},
       "transition_out": "crossfade"
     },
     {
       "id": "scene_0005",
       "type": "still",
-      "start_sec": 52,
-      "end_sec": 65,
-      "beat": "The village makes amends.",
-      "characters_present": [
-        "protagonist",
-        "river_spirit"
-      ],
-      "identity_lock": {
-        "protagonist": "strict",
-        "river_spirit": "strict"
-      },
+      "start_sec": 32,
+      "end_sec": 40,
+      "beat": "Nia pours the first offering into a hollow where water should be.",
+      "characters_present": ["protagonist"],
+      "identity_lock": {"protagonist": "strict"},
       "visual_prompt": {
-        "environment": "villagers beside returning current, reflective water"
+        "environment": "close view of hands pouring offering from carved calabash into cracked river hollow",
+        "shot_kind": "insert"
       },
       "asset_path": "images/scenes/scene_0005.png",
-      "camera_motion": {
-        "type": "gentle_pull_back",
-        "intensity": 0.14
-      },
+      "camera_motion": {"type": "gentle_push_in", "intensity": 0.16},
       "transition_out": "crossfade"
     },
     {
       "id": "scene_0006",
-      "type": "still",
-      "start_sec": 65,
-      "end_sec": 78,
-      "beat": "The river returns at sunset.",
-      "characters_present": [
-        "protagonist"
-      ],
-      "identity_lock": {
-        "protagonist": "strict"
-      },
+      "type": "motion",
+      "start_sec": 40,
+      "end_sec": 48,
+      "beat": "The river spirit rises from mist in front of Nia.",
+      "characters_present": ["protagonist", "river_spirit"],
+      "identity_lock": {"protagonist": "strict", "river_spirit": "strict"},
       "visual_prompt": {
-        "environment": "sunset river full again, warm reflections"
+        "environment": "misty cracked riverbed, glowing elder spirit forming above shallow water, Nia kneeling nearby",
+        "shot_kind": "mystic_reveal"
       },
       "asset_path": "images/scenes/scene_0006.png",
-      "camera_motion": {
-        "type": "slow_push_in",
-        "intensity": 0.1
+      "camera_motion": {"type": "mist_reveal", "intensity": 0.3},
+      "transition_out": "crossfade"
+    },
+    {
+      "id": "scene_0007",
+      "type": "still",
+      "start_sec": 48,
+      "end_sec": 56,
+      "beat": "Nia chooses courage and returns the stolen river stones.",
+      "characters_present": ["protagonist", "river_spirit"],
+      "identity_lock": {"protagonist": "strict", "river_spirit": "strict"},
+      "visual_prompt": {
+        "environment": "Nia holding carved stones toward translucent river spirit, tense twilight riverbank",
+        "shot_kind": "reaction"
       },
+      "asset_path": "images/scenes/scene_0007.png",
+      "camera_motion": {"type": "slow_pull_back", "intensity": 0.16},
+      "transition_out": "crossfade"
+    },
+    {
+      "id": "scene_0008",
+      "type": "motion",
+      "start_sec": 56,
+      "end_sec": 64,
+      "beat": "Water surges back through the riverbed as villagers step away.",
+      "characters_present": ["protagonist", "river_spirit"],
+      "identity_lock": {"protagonist": "strict", "river_spirit": "strict"},
+      "visual_prompt": {
+        "environment": "returning river current, villagers stepping back, glowing mist dissolving into water",
+        "shot_kind": "resolution"
+      },
+      "asset_path": "images/scenes/scene_0008.png",
+      "camera_motion": {"type": "water_surge", "intensity": 0.3},
+      "transition_out": "crossfade"
+    },
+    {
+      "id": "scene_0009",
+      "type": "still",
+      "start_sec": 64,
+      "end_sec": 72,
+      "beat": "At sunset Nia watches the full river carry the promise onward.",
+      "characters_present": ["protagonist"],
+      "identity_lock": {"protagonist": "strict"},
+      "visual_prompt": {
+        "environment": "sunset river full again, warm reflections, Nia standing small on riverbank",
+        "shot_kind": "wide_action"
+      },
+      "asset_path": "images/scenes/scene_0009.png",
+      "camera_motion": {"type": "slow_push_in", "intensity": 0.12},
       "transition_out": "crossfade"
     }
   ],
   "motion_shots": [
     {
       "id": "motion_0001",
-      "scene_id": "scene_0004",
-      "provider": "fake",
-      "duration_sec": 6,
-      "prompt": "mist curls upward as the river spirit forms above the water",
-      "source_image_path": "images/scenes/scene_0004.png",
+      "scene_id": "scene_0002",
+      "provider": "siliconflow",
+      "duration_sec": 5,
+      "prompt": "The carved calabash rolls through a dry river channel and stops beside marked stones, dust drifting, cinematic close insert, no text.",
+      "source_image_path": "images/scenes/scene_0002.png",
       "asset_path": "video/motion/motion_0001.mp4",
       "fallback_asset_path": "images/fallback_stills/motion_0001_fallback.png",
+      "audio_policy": "strip"
+    },
+    {
+      "id": "motion_0002",
+      "scene_id": "scene_0004",
+      "provider": "siliconflow",
+      "duration_sec": 5,
+      "prompt": "Nia runs along the raffia palm path toward the sacred river bend, dust and cloth moving, cinematic follow shot, no text.",
+      "source_image_path": "images/scenes/scene_0004.png",
+      "asset_path": "video/motion/motion_0002.mp4",
+      "fallback_asset_path": "images/fallback_stills/motion_0002_fallback.png",
+      "audio_policy": "strip"
+    },
+    {
+      "id": "motion_0003",
+      "scene_id": "scene_0006",
+      "provider": "siliconflow",
+      "duration_sec": 5,
+      "prompt": "Mist rises from cracked earth and forms the glowing river spirit before Nia, water vapor curling upward, cinematic reveal, no text.",
+      "source_image_path": "images/scenes/scene_0006.png",
+      "asset_path": "video/motion/motion_0003.mp4",
+      "fallback_asset_path": "images/fallback_stills/motion_0003_fallback.png",
+      "audio_policy": "strip"
+    },
+    {
+      "id": "motion_0004",
+      "scene_id": "scene_0008",
+      "provider": "siliconflow",
+      "duration_sec": 5,
+      "prompt": "Water surges back through the dry riverbed while villagers step away and mist dissolves into sunlight, cinematic wide shot, no text.",
+      "source_image_path": "images/scenes/scene_0008.png",
+      "asset_path": "video/motion/motion_0004.mp4",
+      "fallback_asset_path": "images/fallback_stills/motion_0004_fallback.png",
       "audio_policy": "strip"
     }
   ],
@@ -275,8 +326,8 @@
     "required_assets": {
       "character_refs": 2,
       "still_scenes_min": 5,
-      "motion_shots": 1,
-      "narration_segments_min": 6
+      "motion_shots": 4,
+      "narration_segments_min": 7
     }
   }
 }
