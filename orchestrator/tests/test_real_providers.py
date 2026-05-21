@@ -1,4 +1,5 @@
 import json
+import base64
 from pathlib import Path
 import sys
 import types
@@ -6,11 +7,11 @@ import wave
 
 from PIL import Image
 
-from kuba.providers.comfyui import ComfyUIImageProvider, patch_workflow
+from kuba.providers.comfyui import ComfyUIClient, ComfyUIImageProvider, patch_workflow
 from kuba.providers.gemini import GeminiScriptProvider
 from kuba.providers.kokoro import KokoroAudioProvider
 from kuba.providers.kokoro import _load_kokoro_engine
-from kuba.providers.siliconflow import SiliconFlowVideoProvider
+from kuba.providers.siliconflow import SiliconFlowClient, SiliconFlowVideoProvider
 from kuba.providers.veo import GeminiVeoVideoProvider
 
 
@@ -37,6 +38,41 @@ def test_patch_workflow_updates_mapped_inputs():
     assert patched["1"]["inputs"]["text"] == "new prompt"
     assert patched["2"]["inputs"]["filename_prefix"] == "kuba/scene_0001"
     assert workflow["1"]["inputs"]["text"] == "old"
+
+
+def test_patch_workflow_bypasses_ip_adapter_when_reference_image_is_missing():
+    workflow = {
+        "1": {"inputs": {"ckpt_name": "model.safetensors"}, "class_type": "CheckpointLoaderSimple"},
+        "2": {"inputs": {"text": "", "clip": ["1", 1]}, "class_type": "CLIPTextEncode"},
+        "3": {"inputs": {"text": "", "clip": ["1", 1]}, "class_type": "CLIPTextEncode"},
+        "4": {"inputs": {"width": 512, "height": 512, "batch_size": 1}, "class_type": "EmptyLatentImage"},
+        "5": {"inputs": {"image": ""}, "class_type": "LoadImage"},
+        "6": {"inputs": {"model": ["1", 0], "preset": "PLUS (high strength)"}, "class_type": "IPAdapterUnifiedLoader"},
+        "7": {"inputs": {"model": ["6", 0], "ipadapter": ["6", 1], "image": ["5", 0]}, "class_type": "IPAdapter"},
+        "8": {"inputs": {"model": ["7", 0], "positive": ["2", 0], "negative": ["3", 0], "latent_image": ["4", 0]}, "class_type": "KSampler"},
+        "9": {"inputs": {"samples": ["8", 0], "vae": ["1", 2]}, "class_type": "VAEDecode"},
+        "10": {"inputs": {"images": ["9", 0], "filename_prefix": ""}, "class_type": "SaveImage"},
+    }
+    mapping = {
+        "positive_prompt": "2.inputs.text",
+        "save_prefix": "10.inputs.filename_prefix",
+        "reference_image": "5.inputs.image",
+    }
+
+    patched = patch_workflow(
+        workflow,
+        mapping,
+        positive_prompt="Nia portrait",
+        negative_prompt="",
+        seed=0,
+        output_prefix="protagonist_ref",
+        reference_image_path=None,
+    )
+
+    assert "5" not in patched
+    assert "6" not in patched
+    assert "7" not in patched
+    assert patched["8"]["inputs"]["model"] == ["1", 0]
 
 
 def test_comfy_provider_submits_polls_and_downloads_image(tmp_path: Path):
@@ -84,6 +120,14 @@ def test_comfy_provider_submits_polls_and_downloads_image(tmp_path: Path):
 
     assert Path(output).exists()
     assert Image.open(output).size == (8, 8)
+
+
+def test_comfy_client_reads_base_url_from_environment(monkeypatch):
+    monkeypatch.setenv("COMFYUI_BASE_URL", "https://example.test/")
+
+    client = ComfyUIClient()
+
+    assert client.base_url == "https://example.test"
 
 
 def test_kokoro_provider_uses_injected_engine(tmp_path: Path):
@@ -255,6 +299,7 @@ def test_siliconflow_provider_polls_request_and_writes_video(tmp_path: Path):
     class Client:
         def submit_video(self, prompt, source_image_path, duration_sec):
             assert prompt == "mist"
+            assert source_image_path == str(tmp_path / "images/scenes/scene.png")
             return "request-1"
 
         def wait_for_video_bytes(self, request_id):
@@ -262,6 +307,9 @@ def test_siliconflow_provider_polls_request_and_writes_video(tmp_path: Path):
             return b"silicon-video"
 
     provider = SiliconFlowVideoProvider(client=Client())
+    source = tmp_path / "images/scenes/scene.png"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"png")
 
     output = provider.generate_video(
         str(tmp_path),
@@ -272,3 +320,37 @@ def test_siliconflow_provider_polls_request_and_writes_video(tmp_path: Path):
     )
 
     assert Path(output).read_bytes() == b"silicon-video"
+
+
+def test_siliconflow_client_submits_image_to_video_payload(tmp_path: Path, monkeypatch):
+    source = tmp_path / "scene.png"
+    Image.new("RGB", (1024, 768), "blue").save(source)
+    requests = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b'{"requestId":"request-1"}'
+
+    def fake_urlopen(request, timeout):
+        requests.append(request)
+        return Response()
+
+    monkeypatch.setattr("kuba.providers.siliconflow.urlopen", fake_urlopen)
+
+    client = SiliconFlowClient(api_key="key")
+    request_id = client.submit_video("mist", str(source), 6)
+
+    payload = json.loads(requests[0].data.decode("utf-8"))
+    assert request_id == "request-1"
+    assert payload["model"] == "Wan-AI/Wan2.2-I2V-A14B"
+    assert payload["prompt"] == "mist"
+    assert payload["image_size"] == "720x1280"
+    assert payload["image"].startswith("data:image/jpeg;base64,")
+    decoded = base64.b64decode(payload["image"].split(",", 1)[1])
+    assert decoded.startswith(b"\xff\xd8")

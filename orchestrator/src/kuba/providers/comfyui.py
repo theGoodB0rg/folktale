@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
 import time
 from typing import Any
@@ -14,8 +15,8 @@ from kuba.paths import resolve_episode_path
 
 
 class ComfyUIClient:
-    def __init__(self, base_url: str = "http://127.0.0.1:8188", timeout_sec: float = 30):
-        self.base_url = base_url.rstrip("/")
+    def __init__(self, base_url: str | None = None, timeout_sec: float = 30):
+        self.base_url = (base_url or os.environ.get("COMFYUI_BASE_URL") or "http://127.0.0.1:8188").rstrip("/")
         self.timeout_sec = timeout_sec
 
     def upload_image(self, image_bytes: bytes, filename: str) -> str:
@@ -152,6 +153,8 @@ def patch_workflow(
     reference_image_path: str | None,
 ) -> dict[str, Any]:
     patched = deepcopy(workflow)
+    if reference_image_path is None:
+        _bypass_ip_adapter(patched)
     values: dict[str, Any] = {
         "positive_prompt": positive_prompt,
         "negative_prompt": negative_prompt,
@@ -164,6 +167,33 @@ def patch_workflow(
         if target and value is not None:
             _set_path(patched, target, value)
     return patched
+
+
+def _bypass_ip_adapter(workflow: dict[str, Any]) -> None:
+    ip_adapter_ids = [
+        node_id
+        for node_id, node in workflow.items()
+        if node.get("class_type") in {"IPAdapter", "IPAdapterUnifiedLoader", "LoadImage"}
+    ]
+    model_input = _first_upstream_model_input(workflow, ip_adapter_ids)
+    if model_input is not None:
+        for node in workflow.values():
+            inputs = node.get("inputs", {})
+            if inputs.get("model") in [[node_id, 0] for node_id in ip_adapter_ids]:
+                inputs["model"] = model_input
+    for node_id in ip_adapter_ids:
+        workflow.pop(node_id, None)
+
+
+def _first_upstream_model_input(
+    workflow: dict[str, Any],
+    node_ids: list[str],
+) -> list[str] | None:
+    for node_id in node_ids:
+        model_input = workflow.get(node_id, {}).get("inputs", {}).get("model")
+        if isinstance(model_input, list) and len(model_input) == 2:
+            return model_input
+    return None
 
 
 def validate_workflow_map(workflow: dict[str, Any], mapping: dict[str, str]) -> list[str]:

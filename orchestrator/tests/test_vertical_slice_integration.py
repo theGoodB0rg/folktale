@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import types
 
 import pytest
 from pydantic import ValidationError
@@ -154,6 +155,36 @@ def test_production_generation_fails_instead_of_falling_back_when_video_fails(tm
     assert not (episode_root / "images" / "fallback_stills" / "motion_0001_fallback.png").exists()
     state = EpisodeState.load(episode_root / "state.json")
     assert state.phases["video_generate"] == PhaseStatus.FAILED
+
+
+def test_generate_video_reuses_existing_valid_motion_asset(tmp_path: Path, monkeypatch):
+    episode_root = create_episode(tmp_path / "episodes", "The River's Debt")
+    generate_script(episode_root, FakeScriptProvider())
+    motion_path = episode_root / "video" / "motion" / "motion_0001.mp4"
+    motion_path.parent.mkdir(parents=True, exist_ok=True)
+    motion_path.write_bytes(b"real-video")
+
+    class UnexpectedVideoProvider(FailingFakeVideoProvider):
+        provider_name = "siliconflow"
+
+        def generate_video(self, *args, **kwargs):
+            raise AssertionError("valid existing video should be reused")
+
+    monkeypatch.setattr(
+        "kuba.phases.video_generate.probe_video",
+        lambda path: types.SimpleNamespace(valid=True, duration_sec=6.0),
+    )
+
+    generate_video(
+        episode_root,
+        UnexpectedVideoProvider(),
+        FakeImageProvider(),
+        mode="production",
+    )
+
+    manifest = json.loads((episode_root / "video" / "manifest.json").read_text())
+    assert manifest["entries"][0]["status"] == "completed"
+    assert manifest["entries"][0]["provider"] == "siliconflow"
 
 
 def test_production_validation_fails_for_fake_provider_assets(tmp_path: Path):

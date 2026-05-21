@@ -40,6 +40,19 @@ def generate_video(
     fallback_used = False
     for shot in blueprint.motion_shots:
         try:
+            existing_probe = probe_video(episode_root / shot.asset_path)
+            if existing_probe.valid:
+                entry = {
+                    "asset_id": shot.id,
+                    "blueprint_ref": shot.id,
+                    "relative_path": shot.asset_path,
+                    "status": PhaseStatus.COMPLETED.value,
+                    "provider": video_provider.provider_name,
+                }
+                if existing_probe.duration_sec is not None:
+                    entry["duration_sec"] = existing_probe.duration_sec
+                video_entries_by_asset_id[shot.id] = entry
+                continue
             video_provider.generate_video(
                 str(episode_root),
                 shot.asset_path,
