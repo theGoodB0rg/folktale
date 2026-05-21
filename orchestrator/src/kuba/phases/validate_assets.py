@@ -7,6 +7,7 @@ from kuba.media.image_probe import probe_image
 from kuba.media.video_probe import probe_video
 from kuba.mode import RunMode, is_fake_provider, normalize_mode
 from kuba.paths import resolve_episode_path
+from kuba.quality.story_timing import analyze_story_timing
 from kuba.state.episode_state import EpisodeState, PhaseStatus
 
 
@@ -50,6 +51,7 @@ def validate_assets(episode_root: Path, *, mode: RunMode = "dev") -> AssetValida
             f"{required.narration_segments_min}"
         )
 
+    audio_durations_by_asset_id: dict[str, float] = {}
     for segment in blueprint.narration.segments:
         path = resolve_episode_path(episode_root, segment.audio_path)
         result = probe_audio(path)
@@ -58,6 +60,8 @@ def validate_assets(episode_root: Path, *, mode: RunMode = "dev") -> AssetValida
                 f"narration segment {segment.id} invalid at {segment.audio_path}: "
                 f"{result.error or 'invalid audio'}"
             )
+        elif result.duration_sec is not None:
+            audio_durations_by_asset_id[segment.id] = result.duration_sec
 
     for character in blueprint.characters:
         path = resolve_episode_path(episode_root, character.reference_image_path)
@@ -98,6 +102,34 @@ def validate_assets(episode_root: Path, *, mode: RunMode = "dev") -> AssetValida
             )
 
     if run_mode == "production":
+        timing_report = analyze_story_timing(
+            {
+                "episode_duration_sec": blueprint.episode.duration_sec,
+                "narration": [
+                    {
+                        "id": segment.id,
+                        "start_sec": segment.start_sec,
+                        "target_duration_sec": segment.target_duration_sec,
+                        "actual_duration_sec": audio_durations_by_asset_id.get(
+                            segment.id,
+                            segment.target_duration_sec,
+                        ),
+                    }
+                    for segment in blueprint.narration.segments
+                ],
+                "scenes": [
+                    {
+                        "id": scene.id,
+                        "start_sec": scene.start_sec,
+                        "end_sec": scene.end_sec,
+                        "type": scene.type,
+                    }
+                    for scene in blueprint.scenes
+                ],
+                "motion": [{"id": shot.id} for shot in blueprint.motion_shots],
+            }
+        )
+        errors.extend(timing_report.issues)
         errors.extend(_fake_provider_errors(episode_root))
 
     report = AssetValidationReport(ok=not errors, errors=errors)

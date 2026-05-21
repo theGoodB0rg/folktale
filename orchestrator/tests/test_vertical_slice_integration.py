@@ -201,6 +201,29 @@ def test_production_validation_fails_for_fake_provider_assets(tmp_path: Path):
     assert any("fake provider" in error.lower() for error in report.errors)
 
 
+def test_production_validation_fails_sparse_story_timing(tmp_path: Path, monkeypatch):
+    episode_root = create_episode(tmp_path / "episodes", "The River's Debt")
+    generate_script(episode_root, FakeScriptProvider())
+    generate_refs(episode_root, FakeImageProvider())
+    approve_refs(episode_root)
+    generate_audio(episode_root, FakeAudioProvider())
+    generate_images(episode_root, FakeImageProvider())
+    generate_video(episode_root, FailingFakeVideoProvider(), FakeImageProvider())
+
+    def short_valid_audio(path):
+        return types.SimpleNamespace(valid=True, duration_sec=1.0, error=None)
+
+    monkeypatch.setattr(
+        "kuba.phases.validate_assets.probe_audio",
+        short_valid_audio,
+    )
+
+    report = validate_assets(episode_root, mode="production")
+
+    assert report.ok is False
+    assert any("narration coverage" in error for error in report.errors)
+
+
 def test_validate_assets_fails_when_approved_character_ref_is_missing(tmp_path: Path):
     episode_root = create_episode(tmp_path / "episodes", "The River's Debt")
     generate_script(episode_root, FakeScriptProvider())
